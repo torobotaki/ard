@@ -49,7 +49,18 @@ Supported family coverage and tuning notes live in [AUDIO_REACTIVE_COVERAGE.md](
 
 ## Upstream archive
 
-The rest of this repository still contains the original p5.js recoding archive and gallery structure from the upstream project.
+`A·R·D*` is now the primary entry point of this repository.
+
+The original `sketches/p5js/sketches/*` tree is intentionally kept in place as:
+
+- the upstream p5.js archive
+- a reference library for the source drawings
+- a way to inspect or run the original single-sketch adaptations directly
+
+So the project should be read as:
+
+- root / master sketch = current audio-reactive derivative project
+- original sketch tree = preserved upstream archive and source reference
 
 This repository presents programs written by french mathematician and computer scientist [Jean-Paul Delahaye](https://fr.wikipedia.org/wiki/Jean-Paul_Delahaye) in the book *"Dessins géométriques et artistiques avec votre micro-ordinateur"* published in 1985 for the [Eyrolles](https://www.eyrolles.com/) french publishing house.<br /><br />
 <img src="/Dessins_géométriques_artistiques_couverture.jpg" height="350" width="auto" /><img src="/Dessins_géométriques_artistiques_pages_fractales.jpg" height="350" width="auto" />
@@ -57,8 +68,8 @@ This repository presents programs written by french mathematician and computer s
 
 The programs were originally programmed with Microsoft Basic for [Canon X-07](https://en.wikipedia.org/wiki/Canon_X-07) computer, outputs were drawn on a [Canon X710 plotter](http://pocket.free.fr/html/canon/x-710_f.html). They were recoded with [p5.js](https://p5js.org/), the online collection can be found [here](https://editor.p5js.org/v3ga/collections/ALPCSgG3E). You can click on each thumb to jump to the corresponding sketch. Be sure to edit the *DESSIN* variable in the program header.
 
-## Audio-reactive starter
-If you want to use this repository as a base for live audiovisual work, two microphone-driven examples were added here:
+## A·R·D* entry points
+If you want to use this repository as a base for live audiovisual work, the main entry point is now the audio-reactive master at the repository root, plus two direct sketch URLs:
 
 `sketches/p5js/sketches/11 - AUDIO REACTIVE - ORBITAL LINES/index.html`
 
