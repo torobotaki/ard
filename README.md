@@ -4,29 +4,6 @@
 
 ![A·R·D* screenshot](screenshot.png)
 
-Links:
-
-- Website: [dvalsamou.me](https://dvalsamou.me)
-- GitHub: [@torobotaki](https://github.com/torobotaki)
-- Original upstream repo: [v3ga/dessins_geometriques_et_artistiques](https://github.com/v3ga/dessins_geometriques_et_artistiques)
-- Upstream p5.js collection: https://editor.p5js.org/v3ga/collections/ALPCSgG3E
-
-## Demo
-
-Try it here:
-
-- https://dvalsamou.me/ard/
-
-Credits:
-
-- Originals: [Jean-Paul Delahaye](https://fr.wikipedia.org/wiki/Jean-Paul_Delahaye)
-- Library / p5.js recoding foundation: [@v3ga](https://github.com/v3ga)
-- Audio-reactive adaptation, UI, composition system, calibration, and packaging: [@torobotaki](https://dvalsamou.me)
-
-License:
-
-- This repository remains distributed under the existing [GPL-2.0 license](LICENSE).
-- `A·R·D*` is a derivative/adaptation built on top of the upstream codebase, not a clean-room rewrite.
 
 ## Quick start
 
@@ -80,6 +57,30 @@ If you want the original project, original gallery, original sketch-by-sketch do
 - [github.com/v3ga/dessins_geometriques_et_artistiques](https://github.com/v3ga/dessins_geometriques_et_artistiques)
 
 This repo is intentionally focused on `A·R·D*` as the primary experience rather than duplicating the full upstream README.
+
+
+Links:
+
+- Website: [dvalsamou.me](https://dvalsamou.me)
+- Original upstream repo: [v3ga/dessins_geometriques_et_artistiques](https://github.com/v3ga/dessins_geometriques_et_artistiques)
+- Upstream p5.js collection: https://editor.p5js.org/v3ga/collections/ALPCSgG3E
+
+## Demo
+
+Try it here:
+
+- https://dvalsamou.me/ard/
+
+Credits:
+
+- Originals: [Jean-Paul Delahaye](https://fr.wikipedia.org/wiki/Jean-Paul_Delahaye)
+- Library / p5.js recoding foundation: [@v3ga](https://github.com/v3ga)
+- Audio-reactive adaptation, UI, composition system, calibration, and packaging: [@torobotaki](https://dvalsamou.me)
+
+License:
+
+- This repository remains distributed under the existing [GPL-2.0 license](LICENSE).
+- `A·R·D*` is a derivative/adaptation built on top of the upstream codebase, not a clean-room rewrite.
 
 ## Development note
 
