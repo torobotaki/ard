@@ -58,7 +58,6 @@ Credits and redistribution notes live in [CREDITS.md](CREDITS.md).
 
 - Root entry point: [index.html](index.html)
 - App entry point: `ard/index.html`
-- Minimal starter: `sketches/p5js/sketches/11 - AUDIO REACTIVE - ORBITAL LINES/index.html`
 
 ## Upstream archive
 
