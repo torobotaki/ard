@@ -27,16 +27,17 @@ python3 -m http.server 8000
 
 - Then open:
 
-- `http://localhost:8000/`
+ `http://localhost:8000/`
 
 The root page forwards directly to the audio-reactive master sketch.
 
-### Audio input note:
+#### Audio input note
 
 - `A·R·D*` listens to whatever input device your browser exposes under microphone inputs.
 - If you want to react to computer audio instead of a physical microphone, route system audio into a browser-visible input device first.
 - On macOS, a common option is [BlackHole](https://existential.audio/blackhole/). On other systems, use the equivalent virtual audio device or loopback tool for that platform.
 
+#### Performance 
 **Kindly note**, if your **fps** drops under 10, the visuals are way to heavy for your browser, try something simpler. 
 
 
