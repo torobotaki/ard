@@ -15,7 +15,7 @@ Credits:
 
 - Originals: [Jean-Paul Delahaye](https://fr.wikipedia.org/wiki/Jean-Paul_Delahaye)
 - Library / p5.js recoding foundation: [@v3ga](https://github.com/v3ga)
-- Audio-reactive adaptation, UI, composition system, calibration, and packaging: [Dialekti Valsamou-Stanislawski / @torobotaki](https://dvalsamou.me)
+- Audio-reactive adaptation, UI, composition system, calibration, and packaging: [@torobotaki](https://dvalsamou.me)
 
 License:
 
@@ -35,6 +35,12 @@ Then open:
 - `http://localhost:8000/`
 
 The root page forwards directly to the audio-reactive master sketch.
+
+Audio input note:
+
+- `A·R·D*` listens to whatever input device your browser exposes under microphone inputs.
+- If you want to react to computer audio instead of a physical microphone, route system audio into a browser-visible input device first.
+- On macOS, a common option is [BlackHole](https://existential.audio/blackhole/). On other systems, use the equivalent virtual audio device or loopback tool for that platform.
 
 ## What A·R·D* adds
 
