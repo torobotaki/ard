@@ -1726,7 +1726,7 @@ function captureInitialState() {
 
 function loadFavorites() {
   try {
-    let raw = localStorage.getItem("dessinsgeo_favorites");
+    let raw = localStorage.getItem("ard_favorites");
     if (raw) {
       currentFavorites = new Set(JSON.parse(raw));
       return;
@@ -1737,7 +1737,7 @@ function loadFavorites() {
 
 function loadTheme() {
   try {
-    let raw = localStorage.getItem("dessinsgeo_theme");
+    let raw = localStorage.getItem("ard_theme");
     if (!raw) return;
     Object.assign(themeConfig, JSON.parse(raw));
   } catch (_error) {}
@@ -1745,13 +1745,13 @@ function loadTheme() {
 
 function saveTheme() {
   try {
-    localStorage.setItem("dessinsgeo_theme", JSON.stringify(themeConfig));
+    localStorage.setItem("ard_theme", JSON.stringify(themeConfig));
   } catch (_error) {}
 }
 
 function saveFavorites() {
   try {
-    localStorage.setItem("dessinsgeo_favorites", JSON.stringify(Array.from(currentFavorites)));
+    localStorage.setItem("ard_favorites", JSON.stringify(Array.from(currentFavorites)));
   } catch (_error) {}
 }
 
