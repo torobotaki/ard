@@ -108,12 +108,28 @@ const COMPOSITION2_PRESETS = {
 };
 
 const ORBITAL_PRESETS = {
+  78: { detail: 2000, T1: 2, T2: 100, K1: 1, K2: 1, R1: 0.25, yScale: 1, r2Scale: 0.2, r2Mode: "decay" },
+  79: { detail: 4000, T1: 1, T2: 200, K1: 1, K2: 1, R1: 0.2, yScale: 1, r2Scale: 0.3, r2Mode: "cos5Wide" },
   80: { detail: 2200, T1: 1, T2: 300, K1: 1, K2: 2, R1: 0.3, yScale: 1.5, r2Scale: 0.2, r2Mode: "pulse10" },
+  81: { detail: 2000, T1: 1, T2: 100, K1: 1, K2: 1, R1: 0.27, yScale: 1.4, r2Scale: 0.23, r2Mode: "cos3Wide" },
+  82: { detail: 4000, T1: 100, T2: 1, K1: 3, K2: 2, R1: 0.1, yScale: 1.6, r2Scale: 0.4, r2Mode: "decay" },
+  83: { detail: 4000, T1: 1, T2: 200, K1: 3, K2: 2, R1: 0.3, yScale: 1.5, r2Scale: 0.2, r2Mode: "decay" },
   84: { detail: 1800, T1: 1, T2: 150, K1: 1, K2: 1, R1: 0.25, yScale: 1.3, r2Scale: 0.25, r2Mode: "swell" },
+  85: { detail: 5000, T1: 2, T2: 250, K1: 1, K2: 2, R1: 0.35, yScale: 1.4, r2Scale: 0.15, r2Mode: "cos1" },
+  86: { detail: 1400, T1: 1, T2: 600, K1: 1, K2: 1, R1: 0.25, yScale: 1, r2Scale: 0.25, r2Mode: "cos14" },
 };
 
 const TOURNANTE_PRESETS = {
+  87: { detail: 2000, T1: 1, T2: 100, H1: 1, H2: 1, K1: 1, K2: 1, R1: 1 / 6, R2: 1 / 4, yScale: 1, pulseFreq: 2, pulseMin: 0.2, pulseMax: 1 },
+  88: { detail: 3000, T1: 1, T2: 100, H1: 1, H2: 1, K1: 1, K2: 2, R1: 1 / 3, R2: 1 / 7, yScale: 1, pulseFreq: 0, pulseMin: 1, pulseMax: 1 },
+  89: { detail: 3000, T1: 0.5, T2: 30, H1: 1, H2: 1, K1: 1, K2: 3, R1: 1 / 8, R2: 0.27, yScale: 1, pulseFreq: 0, pulseMin: 1, pulseMax: 1 },
+  90: { detail: 2000, T1: 0.5, T2: 50, H1: 1, H2: 2, K1: 1, K2: 3, R1: 1 / 7, R2: 1 / 4, yScale: 1, pulseFreq: 0, pulseMin: 1, pulseMax: 1 },
+  91: { detail: 4000, T1: 1, T2: 800, H1: 3, H2: 5, K1: 1, K2: 1, R1: 5 / 12, R2: 1 / 24, yScale: 1.4, pulseFreq: 15, pulseMin: 0.2, pulseMax: 1 },
   92: { detail: 2200, T1: 1, T2: 100, H1: 1, H2: 1, K1: 1, K2: 2, R1: 1 / 6, R2: 1 / 4, yScale: 1.6 },
+  93: { detail: 3000, T1: 1, T2: 100, H1: 1, H2: 2, K1: 1, K2: 2, R1: 1 / 3, R2: 1 / 8, yScale: 1.3, pulseFreq: 4, pulseMin: 0.2, pulseMax: 1 },
+  94: { detail: 5000, T1: 1, T2: 200, H1: 1, H2: 2, K1: 1, K2: 2, R1: 3 / 8, R2: 1 / 12, yScale: 1.5, pulseFreq: 9, pulseMin: 0.2, pulseMax: 1 },
+  95: { detail: 4000, T1: 1, T2: 100, H1: 1, H2: 1, K1: 1, K2: 2, R1: 1 / 6, R2: 1 / 4, yScale: 1.4, pulseFreq: 2, pulseMin: 0.2, pulseMax: 1 },
+  96: { detail: 4000, T1: 1, T2: 100, H1: 1, H2: 1, K1: 1, K2: 2, R1: 1 / 6, R2: 1 / 4, yScale: 1.7, pulseFreq: 3, pulseMin: 0.2, pulseMax: 1 },
 };
 
 const MODULO_PRESETS = {
@@ -121,9 +137,14 @@ const MODULO_PRESETS = {
   106: { N: 500, K1: 11 / 7, K2: 7 / 3, H: 3 },
   107: { N: 400, K1: 4, K2: 2, H: 2 },
   108: { N: 300, K1: 5, K2: 3, H: 2 },
+  109: { N: 400, K1: 2, K2: 2, H: 9, M: 200 },
 };
 
 const BATONS_PRESETS = {
+  110: { N: 100, M: 1, K: 5, ringDecay: 1, batonScale: 1.67, yScale: 1 },
+  111: { N: 600, M: 1, K: 5, ringDecay: 1, batonScale: 1.67, yScale: 1 },
+  112: { N: 100, M: 6, K: 6, ringDecay: 0.7, batonScale: 1, yScale: 1.2, batonDecay: 0.9 },
+  113: { N: 300, M: 4, K: 3, ringDecay: 0.6, batonScale: 1, yScale: 1, batonDecay: 0.5 },
   114: { N: 260, M: 7, K: 7 },
 };
 
@@ -415,6 +436,21 @@ function renderOrbital(preset, metrics, drawing) {
 }
 
 function orbitalR2(mode, ratio, time, metrics) {
+  if (mode === "decay") {
+    return 1 - ratio;
+  }
+  if (mode === "cos1") {
+    return 0.5 + 0.5 * cos(TAU_VALUE * ratio + time * (0.3 + metrics.mid));
+  }
+  if (mode === "cos3Wide") {
+    return 0.6 + 0.4 * cos(TAU_VALUE * ratio * 3 + time * (0.4 + metrics.mid));
+  }
+  if (mode === "cos5Wide") {
+    return 0.6 + 0.4 * cos(TAU_VALUE * ratio * 5 + time * (0.5 + metrics.mid));
+  }
+  if (mode === "cos14") {
+    return 0.5 + 0.5 * cos(TAU_VALUE * ratio * 7 + time * (0.7 + metrics.treble * 2));
+  }
   if (mode === "pulse10") {
     return 0.5 + 0.5 * cos(TAU_VALUE * ratio * 10 + time * (0.4 + metrics.mid));
   }
@@ -435,12 +471,15 @@ function renderTournante(preset, metrics) {
   let r1 = getPresetValue(92, "R1", preset.R1, metrics);
   let r2 = getPresetValue(92, "R2", preset.R2, metrics);
   let yScale = getPresetValue(92, "yScale", preset.yScale, metrics);
+  let pulseFreq = getPresetValue(92, "pulseFreq", preset.pulseFreq || 0, metrics);
+  let pulseMin = getPresetValue(92, "pulseMin", preset.pulseMin || 0.5, metrics);
+  let pulseMax = getPresetValue(92, "pulseMax", preset.pulseMax || 1, metrics);
 
   strokeWeight(1 + metrics.level * 1.3);
   beginShape();
   for (let i = 0; i <= detail; i++) {
     let ratio = i / detail;
-    let s = cos(3 * PI_VALUE * ratio + time * 0.4) * 0.5 + 0.5;
+    let s = pulseFreq > 0 ? map(cos(TAU_VALUE * ratio * pulseFreq + time * 0.4), -1, 1, pulseMin, pulseMax) : 1;
     let an = TAU_VALUE * ratio;
     let c1 = cos(h1 * an * t1 + time * getSpeedMod(metrics) * 0.3);
     let s1 = sin(h2 * an * t1 - time * getSpeedMod(metrics) * 0.25);
@@ -497,13 +536,14 @@ function renderModulo(preset, metrics, drawing) {
   let ry = unit * 0.42 * globalConfig.size * sizeMod;
   let n = max(2, floor(getPresetValue(drawing, "N", preset.N, metrics)));
   let h = max(1, floor(getPresetValue(drawing, "H", preset.H, metrics) + metrics.treble * 5));
+  let m = max(2, floor(getPresetValue(drawing, "M", preset.M || n, metrics)));
   let k1 = getPresetValue(drawing, "K1", preset.K1, metrics);
   let k2 = getPresetValue(drawing, "K2", preset.K2, metrics);
   let phase = metrics.time * getSpeedMod(metrics) * 0.25;
   let centerY = height * 0.5;
 
   strokeWeight(0.85 + metrics.level);
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < m; i++) {
     let a1 = (k1 * i * PI_VALUE) / n + phase;
     let a2 = (k2 * i * PI_VALUE) / n - phase * 1.4;
     let x1 = width * 0.5 + rx * sin(a1);
@@ -527,18 +567,22 @@ function renderBatons(preset, metrics, drawing) {
   let m = max(1, floor(getPresetValue(drawing, "M", preset.M, metrics)));
   let n = max(2, floor(getPresetValue(drawing, "N", preset.N, metrics)));
   let k = getPresetValue(drawing, "K", preset.K, metrics);
+  let ringDecay = getPresetValue(drawing, "ringDecay", preset.ringDecay || 0.8, metrics);
+  let batonScale = getPresetValue(drawing, "batonScale", preset.batonScale || 1, metrics);
+  let batonDecay = getPresetValue(drawing, "batonDecay", preset.batonDecay || 0.8, metrics);
+  let yScale = getPresetValue(drawing, "yScale", preset.yScale || 1, metrics);
 
   strokeWeight(0.8 + metrics.level * 1.2);
   for (let ring = 1; ring <= m; ring++) {
-    let r1 = unit / 3 * globalConfig.size * sizeMod * pow(0.8, ring - 1) * (1 + metrics.bass * 0.04);
-    let r2 = unit / 12 * globalConfig.size * sizeMod * pow(0.8, ring - 1) * (1 + metrics.mid * 0.18);
+    let r1 = unit / 3 * globalConfig.size * sizeMod * pow(ringDecay, ring - 1) * (1 + metrics.bass * 0.04);
+    let r2 = (unit / 12) * batonScale * globalConfig.size * sizeMod * pow(batonDecay, ring - 1) * (1 + metrics.mid * 0.18);
     for (let j = 0; j < n; j++) {
       let an = (TAU_VALUE * j) / n;
       let wobble = time * getSpeedMod(metrics) * (0.14 + 0.04 * ring);
       let xd = centerX + r1 * cos(an) + r2 * cos(k * an + wobble);
-      let yd = centerY + r1 * sin(an) + r2 * sin(k * an + wobble);
+      let yd = centerY + yScale * (r1 * sin(an) + r2 * sin(k * an + wobble));
       let xa = centerX + r1 * cos(an) + r2 * cos(k * an + PI_VALUE - wobble);
-      let ya = centerY + r1 * sin(an) + r2 * sin(k * an + PI_VALUE - wobble);
+      let ya = centerY + yScale * (r1 * sin(an) + r2 * sin(k * an + PI_VALUE - wobble));
       line(xd, yd, xa, ya);
     }
   }

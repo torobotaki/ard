@@ -24,21 +24,15 @@ This file tracks which original Delahaye sketch families fit the current audio-r
 | 48-49 | Dessins a partir de donnees / Smurf | No | 4 | Data-driven family, better treated separately. |
 | 50-54 | Dragons | No | 4 | Recursive family; likely needs a different interaction model. |
 | 65-77 | Etoiles fractales | No | 4 | Fractal family; likely too awkward for the current control model. |
-| 78-79 | Courbes orbitales | No | 1 | Same family fits well, but these specific variants are not wired yet. |
-| 80 | Courbes orbitales | Yes | 1 | Favorite. Fully integrated. |
-| 81-83 | Courbes orbitales | No | 1 | Family fits the master well; variants still pending. |
-| 84 | Courbes orbitales | Yes | 1 | Favorite. Fully integrated. |
-| 85-86 | Courbes orbitales | No | 1 | Family fits the master well; variants still pending. |
-| 87-90 | Courbes tournantes | No | 1 | Family fits the master well; grouped variants still pending. |
-| 91 | Courbes tournantes | No | 1 | Not yet integrated. |
-| 92 | Courbes tournantes | Yes | 1 | Favorite. Fully integrated. |
-| 93-96 | Courbes tournantes | No | 1 | Good candidates for the next pass in this family. |
+| 78-80 | Courbes orbitales | Yes | 1 | Integrated into the master. |
+| 81-84 | Courbes orbitales | Yes | 1 | Integrated into the master. |
+| 85-86 | Courbes orbitales | Yes | 1 | Integrated into the master. |
+| 87-92 | Courbes tournantes | Yes | 1 | Integrated into the master. |
+| 93-96 | Courbes tournantes | Yes | 1 | Integrated into the master. |
 | 97-100 | Courbes spirales | Yes | 2 | Tier 2 family integrated into the master. |
 | 101-104 | Biparti complet | No | 3 | Potentially workable, but needs UX judgment. |
-| 105-108 | Lineaires modulo | Yes | 1 | Favorites. Integrated into the master. |
-| 109 | Lineaires modulo | No | 1 | Same family as the supported variants, but not wired yet. |
-| 110-113 | Lineaires batons | No | 1 | Same family fits well, but only one favorite variant is currently exposed. |
-| 114 | Lineaires batons | Yes | 1 | Favorite. Integrated into the master. |
+| 105-109 | Lineaires modulo | Yes | 1 | Favorites plus the remaining family variant are integrated into the master. |
+| 110-114 | Lineaires batons | Yes | 1 | Integrated into the master. |
 | 114-135 | Fractales simples | No | 4 | Fractal family; not yet a good fit for the current panel and routing model. |
 | 136-139 | Fractales simples arrondies | No | 4 | Same as above. |
 | 140-144 | Fractales simples arrondies | No | 4 | Same as above. |
