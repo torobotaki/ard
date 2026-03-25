@@ -55,6 +55,15 @@ const PALETTES_UI = {
   red: { label: "Red / Cream", bg: "#8f080e", stroke: "#f2d9ca", accent: "#ffd166" },
   green: { label: "Green / Mint", bg: "#005b51", stroke: "#c7f2d9", accent: "#f7eb23" },
   night: { label: "Night / White", bg: "#07111f", stroke: "#f5f7ff", accent: "#6ee7ff" },
+  solarpunk: { label: "Solarpunk", bg: "#2a9d8f", stroke: "#e9c46a", accent: "#264653" },
+  synthwave: { label: "Synthwave", bg: "#0b132b", stroke: "#ff006e", accent: "#3a86ff" },
+  terminal: { label: "Terminal", bg: "#081c15", stroke: "#95d5b2", accent: "#52b788" },
+  atlas: { label: "Coolors Atlas", bg: "#264653", stroke: "#e9c46a", accent: "#e76f51" },
+  neon: { label: "Coolors Neon", bg: "#3a86ff", stroke: "#ffbe0b", accent: "#ff006e" },
+  miami: { label: "Coolors Miami", bg: "#073b4c", stroke: "#ffd166", accent: "#06d6a0" },
+  candy: { label: "Coolors Candy", bg: "#9b5de5", stroke: "#fee440", accent: "#00f5d4" },
+  sherbet: { label: "Coolors Sherbet", bg: "#ff70a6", stroke: "#e9ff70", accent: "#70d6ff" },
+  abyss: { label: "Coolors Abyss", bg: "#0b132b", stroke: "#6fffe9", accent: "#5bc0be" },
   custom: { label: "Custom", bg: "#013abb", stroke: "#f7eb23", accent: "#ffffff" },
 };
 
@@ -311,6 +320,7 @@ function buildModes() {
   addPresetModes("d3structures", "D3STRUCTURES", D3STRUCTURES_B_PRESETS, renderD3StructureB);
   addPresetModes("d3structures", "D3STRUCTURES", D3STRUCTURES_C_PRESETS, renderD3StructureC);
   addPresetModes("d3structures", "D3STRUCTURES", D3STRUCTURES_D_PRESETS, renderD3StructureD);
+  modes.sort((a, b) => a.drawing - b.drawing || a.label.localeCompare(b.label));
 
   currentModeIndex = pickWeightedModeIndex();
 }
@@ -377,6 +387,10 @@ function setupUi() {
     }
     applyChromeVisibility();
     flashStatus(themePanelVisible ? "Colors panel visible" : "Colors panel hidden");
+  });
+  document.getElementById("toggle-theme").addEventListener("click", () => {
+    themePanelVisible = !themePanelVisible;
+    applyChromeVisibility();
   });
   document.getElementById("toggle-config").addEventListener("click", () => {
     configPanelVisible = !configPanelVisible;
@@ -1444,6 +1458,9 @@ function renderConfigPanel() {
 
 function renderThemePanel() {
   if (!themeContentEl) return;
+  let panelParsed = parseRgbaColor(themeConfig.panelColor);
+  let controlParsed = parseRgbaColor(themeConfig.controlColor);
+  let hoverParsed = parseRgbaColor(themeConfig.hoverColor);
   let html = "";
   html += renderSection("theme", "Theme", [
     makeSelectControl(
@@ -1456,9 +1473,12 @@ function renderThemePanel() {
     makeColorControl("bgColor", "Background", themeConfig.bgColor, "theme"),
     makeColorControl("strokeColor", "Interface / Default Line", themeConfig.strokeColor, "theme"),
     makeColorControl("accentColor", "Interface Accent", themeConfig.accentColor, "theme"),
-    makeTextControl("panelColor", "Panel Surface", themeConfig.panelColor, "theme"),
-    makeTextControl("controlColor", "Button Fill", themeConfig.controlColor, "theme"),
-    makeTextControl("hoverColor", "Button Hover", themeConfig.hoverColor, "theme"),
+    makeColorControl("panelColor", "Panel Surface", panelParsed.hex, "theme"),
+    makeSliderControl("panelAlpha", "Panel Opacity", panelParsed.alpha, 0, 1, 0.01, "", "theme"),
+    makeColorControl("controlColor", "Button Fill", controlParsed.hex, "theme"),
+    makeSliderControl("controlAlpha", "Button Fill Opacity", controlParsed.alpha, 0, 1, 0.01, "", "theme"),
+    makeColorControl("hoverColor", "Button Hover", hoverParsed.hex, "theme"),
+    makeSliderControl("hoverAlpha", "Button Hover Opacity", hoverParsed.alpha, 0, 1, 0.01, "", "theme"),
   ]);
   themeContentEl.innerHTML = html;
   bindThemeControls();
@@ -1539,12 +1559,30 @@ function updateThemeConfigFromInput(el) {
     return;
   }
 
-  themeConfig[key] = value;
+  if (key === "panelColor" || key === "controlColor" || key === "hoverColor") {
+    let parsed = parseRgbaColor(themeConfig[key]);
+    themeConfig[key] = rgbaFromHex(value, parsed.alpha);
+  } else if (key === "panelAlpha") {
+    let parsed = parseRgbaColor(themeConfig.panelColor);
+    themeConfig.panelColor = rgbaFromHex(parsed.hex, Number(value));
+    updateValueText("value-theme-panelAlpha", key, Number(value));
+  } else if (key === "controlAlpha") {
+    let parsed = parseRgbaColor(themeConfig.controlColor);
+    themeConfig.controlColor = rgbaFromHex(parsed.hex, Number(value));
+    updateValueText("value-theme-controlAlpha", key, Number(value));
+  } else if (key === "hoverAlpha") {
+    let parsed = parseRgbaColor(themeConfig.hoverColor);
+    themeConfig.hoverColor = rgbaFromHex(parsed.hex, Number(value));
+    updateValueText("value-theme-hoverAlpha", key, Number(value));
+  } else {
+    themeConfig[key] = value;
+  }
   themeConfig.palette = "custom";
   if (key === "strokeColor" && globalConfig.drawColor === previousStroke) globalConfig.drawColor = value;
   if (key === "accentColor" && globalConfig.audioAccentColor === previousAccent) globalConfig.audioAccentColor = value;
   let paletteSelect = document.getElementById("theme-palette");
   if (paletteSelect) paletteSelect.value = "custom";
+  renderThemePanel();
   renderConfigPanel();
 }
 
@@ -1602,12 +1640,13 @@ function inferRange(key, value) {
   return { min: 0, max: max(10, absValue * 2.5), step: 0.01 };
 }
 
-function makeSliderControl(key, label, value, min, max, step, format = "") {
+function makeSliderControl(key, label, value, min, max, step, format = "", scope = "global") {
+  let dataKey = scope === "theme" ? "data-theme-key" : "data-global-key";
   return `
     <div class="config-row">
-      <label for="global-${key}">${label}</label>
-      <span id="value-global-${key}" class="config-value">${formatValue(key, value, format)}</span>
-      <input id="global-${key}" data-global-key="${key}" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
+      <label for="${scope}-${key}">${label}</label>
+      <span id="value-${scope}-${key}" class="config-value">${formatValue(key, value, format)}</span>
+      <input id="${scope}-${key}" ${dataKey}="${key}" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
     </div>
   `;
 }
@@ -1648,25 +1687,6 @@ function makeColorControl(key, label, value, scope = "global") {
   `;
 }
 
-function makeCheckboxControl(key, label, value) {
-  return `
-    <div class="config-row">
-      <label for="global-${key}">${label}</label>
-      <input id="global-${key}" data-global-key="${key}" type="checkbox" ${value ? "checked" : ""}>
-    </div>
-  `;
-}
-
-function makeTextControl(key, label, value, scope = "theme") {
-  let dataKey = scope === "theme" ? "data-theme-key" : "data-global-key";
-  return `
-    <div class="config-row">
-      <label for="${scope}-${key}">${label}</label>
-      <input id="${scope}-${key}" ${dataKey}="${key}" type="text" value="${value}">
-    </div>
-  `;
-}
-
 function makeSelectControl(key, label, value, options, scope = "global") {
   let dataKey = scope === "theme" ? "data-theme-key" : "data-global-key";
   let optionsHtml = options
@@ -1689,6 +1709,26 @@ function formatValue(key, value, format = "") {
   if (typeof value === "boolean") return value ? "On" : "Off";
   if (format === "percent") return Math.round(value * 100) + "%";
   return abs(value) >= 100 ? value.toFixed(0) : value.toFixed(2);
+}
+
+function parseRgbaColor(value) {
+  if (value.startsWith("#")) return { hex: value, alpha: 1 };
+  let match = value.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([0-9.]+))?\s*\)/i);
+  if (!match) return { hex: "#000000", alpha: 1 };
+  let hex =
+    "#" +
+    [Number(match[1]), Number(match[2]), Number(match[3])]
+      .map((part) => part.toString(16).padStart(2, "0"))
+      .join("");
+  return { hex: hex, alpha: match[4] ? Number(match[4]) : 1 };
+}
+
+function rgbaFromHex(hex, alpha) {
+  let clean = hex.replace("#", "");
+  let r = parseInt(clean.slice(0, 2), 16);
+  let g = parseInt(clean.slice(2, 4), 16);
+  let b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${constrain(alpha, 0, 1).toFixed(2)})`;
 }
 
 async function startAudio() {

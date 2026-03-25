@@ -21,7 +21,7 @@
       <button id="random-mode" class="control-button" type="button">Random</button>
       <select id="pick-mode" class="control-select" aria-label="Pick drawing"></select>
       <button id="show-config" class="control-button" type="button">Config</button>
-      <button id="show-colors" class="control-button" type="button">Colors</button>
+      <button id="show-colors" class="control-button" type="button">Theme</button>
     </div>
     <aside id="config-panel" class="config-panel">
       <div class="config-panel-inner">
@@ -45,7 +45,12 @@
     <aside id="theme-panel" class="config-panel config-panel-left">
       <div class="config-panel-inner">
         <div class="config-head">
-          <p class="config-kicker">Color Scheme</p>
+          <p class="config-kicker">Theme</p>
+          <div class="config-head-actions">
+            <button id="toggle-theme" class="control-button control-button-small" type="button">
+              Hide
+            </button>
+          </div>
         </div>
         <div id="theme-content"></div>
       </div>
