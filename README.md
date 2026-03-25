@@ -9,6 +9,15 @@ My intent is to provide an open-source and free audio-reactive visualisation too
 
 ## Quick start
 
+### On Github Pages
+
+Try it or use it here:
+
+- https://dvalsamou.me/ard/
+
+
+### Run it locally
+
 Serve the repository locally:
 
 ```bash
@@ -67,11 +76,7 @@ Links:
 - Original upstream repo: [v3ga/dessins_geometriques_et_artistiques](https://github.com/v3ga/dessins_geometriques_et_artistiques)
 - Upstream p5.js collection: https://editor.p5js.org/v3ga/collections/ALPCSgG3E
 
-## Demo
 
-Try it here:
-
-- https://dvalsamou.me/ard/
 
 Credits:
 
