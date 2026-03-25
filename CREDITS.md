@@ -13,11 +13,6 @@ This repository now contains both:
 - Upstream p5.js library, sketch archive, and recoding foundation: `@v3ga`
 - Audio-reactive adaptation, UI, multi-drawing system, calibration, and packaging: Dialekti Valsamou-Stanislawski (`@torobotaki`)
 
-Links:
-
-- Dialekti Valsamou-Stanislawski: https://dvalsamou.me
-- `@torobotaki`: https://github.com/torobotaki
-- `@v3ga`: https://github.com/v3ga
 
 ## License note
 
