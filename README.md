@@ -74,7 +74,7 @@ If you want the original project, original gallery, original sketch-by-sketch do
 This repo is intentionally focused on `A·R·D*` as the primary experience rather than duplicating the full upstream README.
 
 
-### Links and Credits: 
+### Links and Credits
 
 - Upstream p5.js collection: https://editor.p5js.org/v3ga/collections/ALPCSgG3E
 
@@ -82,11 +82,11 @@ This repo is intentionally focused on `A·R·D*` as the primary experience rathe
 - Library / p5.js recoding foundation by [@v3ga](https://github.com/v3ga)
 - Audio-reactive adaptation, UI, composition system, calibration, and packaging by [@torobotaki](https://dvalsamou.me)
 
-## License:
+## License
 
 - This repository remains distributed under the existing [GPL-2.0 license](LICENSE).
 - `A·R·D*` is a derivative/adaptation built on top of the upstream codebase, not a clean-room rewrite.
 
-## Development note
+### Development note
 
 Parts of the audio-reactive adaptation, UI, and documentation were developed with the assistance of AI tools.
