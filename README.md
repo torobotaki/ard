@@ -1,6 +1,55 @@
-# Dessins géométriques et artistiques avec votre micro-ordinateur
+# A·R·D* / Audio-Reactive Dessins Geometriques et Artistiques
 
-👉 https://editor.p5js.org/v3ga/collections/ALPCSgG3E
+`A·R·D*` is an audio-reactive adaptation of the p5.js recoding of Jean-Paul Delahaye's *Dessins géométriques et artistiques avec votre micro-ordinateur*.
+
+Project links:
+
+- Website: [dvalsamou.me](https://dvalsamou.me)
+- GitHub: [@torobotaki](https://github.com/torobotaki)
+- Upstream p5.js collection by `@v3ga`: https://editor.p5js.org/v3ga/collections/ALPCSgG3E
+
+Credits:
+
+- Originals: [Jean-Paul Delahaye](https://fr.wikipedia.org/wiki/Jean-Paul_Delahaye)
+- Library / p5.js recoding foundation: [@v3ga](https://github.com/v3ga)
+- Audio-reactive adaptation, UI, composition system, and curation: [Dialekti Valsamou-Stanislawski / @torobotaki](https://dvalsamou.me)
+
+License:
+
+- This repository remains distributed under the existing [GPL-2.0 license](LICENSE).
+- The current project is a derivative/adaptation built on top of the upstream codebase, not a clean-room rewrite.
+
+Quick start:
+
+- Root entry point: [index.html](index.html)
+- Direct master sketch: `sketches/p5js/sketches/12 - AUDIO REACTIVE - MASTER/index.html`
+
+Serve the repository locally before opening it in a browser:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open:
+
+- `http://localhost:8000/`
+
+The root page forwards directly to the audio-reactive master sketch.
+
+## What A·R·D* adds
+
+- a single audio-reactive master sketch for live use
+- multi-drawing composition on one canvas
+- microphone-driven routing and per-parameter modulation
+- import/export of full compositions
+- theme system, favorites, HUD, and control UI
+- family-level calibration so supported Delahaye families behave more consistently as live visuals
+
+Supported family coverage and tuning notes live in [AUDIO_REACTIVE_COVERAGE.md](AUDIO_REACTIVE_COVERAGE.md).
+
+## Upstream archive
+
+The rest of this repository still contains the original p5.js recoding archive and gallery structure from the upstream project.
 
 This repository presents programs written by french mathematician and computer scientist [Jean-Paul Delahaye](https://fr.wikipedia.org/wiki/Jean-Paul_Delahaye) in the book *"Dessins géométriques et artistiques avec votre micro-ordinateur"* published in 1985 for the [Eyrolles](https://www.eyrolles.com/) french publishing house.<br /><br />
 <img src="/Dessins_géométriques_artistiques_couverture.jpg" height="350" width="auto" /><img src="/Dessins_géométriques_artistiques_pages_fractales.jpg" height="350" width="auto" />

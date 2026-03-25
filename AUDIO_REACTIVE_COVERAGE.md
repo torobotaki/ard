@@ -18,6 +18,36 @@ The remaining unsupported families are not blocked by missing code as much as by
 - Tier 3: supported selectively or experimentally. These can work in the master, but they are heavier, less uniform, or more likely to need family-specific tuning.
 - Tier 4: intentionally unsupported in the current master. These probably want a simpler wrapper, a curated subset, or a separate interaction model.
 
+## Default modulation policy
+
+Fresh or reset drawings do not start from a blank preset-routing state anymore. The master now assigns family-level default modulation to the parameters that tend to read best without immediate manual tuning.
+
+These defaults are intentionally biased toward parameters that:
+
+- visibly reshape the drawing
+- stay stable under live audio
+- avoid structural or mode-switch parameters unless there is a good reason
+
+Current family defaults:
+
+| Family | Default preset modulation on fresh/reset drawings |
+| --- | --- |
+| Composition 1 / 2 | `AD` on treble, `R` and `R1` on bass, `A1` on mid, `RR` lightly on full range |
+| Joligones | `AN` on mid, `RR` on bass, `yScale` on treble, `RA` lightly on full range |
+| Biparti complet | `YB` strongly on mid, `YC` on treble, `XB/XD` on bass, `XA/XC` lightly on full range, with extra family-specific geometry gain |
+| Surfaces | `YB` strongly on mid, `YC` on treble, `XB/XD` on bass, structural switches like `E1/E2/zMode` left off |
+| Courbes orbitales | `T2` on treble, `r2Scale` on mid, `R1` on bass, `yScale` on mid, `T1` lightly on bass |
+| Courbes tournantes | `T2` on treble, `R2` on mid, `R1` on bass, `yScale` on mid, `T1` lightly on bass |
+| Courbes spirales | `T` on mid, `turnScale` on treble, `R` on bass, `yScale` on mid, `yOffset` lightly on bass |
+| Lineaires modulo | `H` on treble, `K2` on mid, `K1` on bass, `M` lightly on full range when present |
+| Lineaires batons | `K` on treble, `batonScale` on mid, `ringDecay` on bass, `yScale` lightly on mid |
+| Quadrillages elastiques | `angleAmount` strongly on mid, `angleWave` on treble, `distPower` on bass, with extra family-specific deformation gain |
+| D3Cube / D3Structures | `AY` on bass, `AZ` on mid, `AX` on treble, `QX` lightly on full range, `QY/QZ` lightly on bass, `R2` lightly on mid when present |
+
+This policy applies only to the default preset routes created for fresh or reset drawings. Any saved scene, imported scene, or manual override still wins.
+
+The master also now applies family-specific preset response multipliers so that these defaults land in a more comparable perceived range. The practical benchmark for that calibration pass is the feel of `LINÉAIRES MODULO / DESSIN 105`, which is being used as the reference for "reactive enough without manual tuning".
+
 ## Coverage table
 
 | Drawings | Family | Supported | Tier | Notes |

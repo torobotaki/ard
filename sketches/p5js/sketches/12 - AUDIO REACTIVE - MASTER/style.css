@@ -114,6 +114,12 @@ canvas {
   font-size: 12px;
 }
 
+.control-button-compact {
+  border-radius: 12px;
+  padding: 8px 8px;
+  min-width: 0;
+}
+
 .config-panel {
   position: fixed;
   top: 72px;
@@ -156,17 +162,79 @@ canvas {
   gap: 8px;
 }
 
+.config-head-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 220px;
+}
+
+.config-head-actions-grid .control-button {
+  width: 100%;
+  text-align: center;
+}
+
+.config-head-spacer {
+  display: block;
+}
+
 .drawing-block {
   margin-bottom: 20px;
-  padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--ui-fg) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--drawing-accent, var(--ui-fg)) 26%, transparent);
   border-radius: 18px;
-  background: color-mix(in srgb, var(--ui-panel) 86%, transparent);
+  overflow: hidden;
+}
+
+.drawing-block.is-even {
+  background: color-mix(in srgb, var(--drawing-accent, var(--ui-fg)) 4%, transparent);
+}
+
+.drawing-block.is-odd {
+  background: color-mix(in srgb, var(--drawing-accent, var(--ui-fg)) 10%, transparent);
 }
 
 .drawing-block.is-active {
-  border-color: color-mix(in srgb, var(--ui-fg) 45%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-fg) 12%, transparent);
+  border-color: color-mix(in srgb, var(--drawing-accent, var(--ui-fg)) 62%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--drawing-accent, var(--ui-fg)) 22%, transparent);
+}
+
+.drawing-block.is-active .drawing-block-title {
+  color: var(--ui-bg);
+  background: var(--drawing-accent, var(--ui-fg));
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.drawing-block-details {
+  padding: 0;
+}
+
+.drawing-block-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.drawing-block-summary::-webkit-details-marker {
+  display: none;
+}
+
+.drawing-block-summary::before {
+  content: "+";
+  display: inline-block;
+  width: 16px;
+  margin-right: 6px;
+  opacity: 0.7;
+}
+
+.drawing-block-details[open] > .drawing-block-summary::before {
+  content: "-";
 }
 
 .drawing-block-head {
@@ -174,7 +242,7 @@ canvas {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  flex: 1;
 }
 
 .drawing-block-title {
@@ -182,11 +250,21 @@ canvas {
   font-weight: 600;
 }
 
+.drawing-block-meta {
+  font-size: 12px;
+  opacity: 0.78;
+  color: color-mix(in srgb, var(--drawing-accent, var(--ui-fg)) 82%, var(--ui-fg));
+}
+
 .drawing-block-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.drawing-block-body {
+  padding: 0 14px 14px;
 }
 
 .config-kicker {
@@ -335,4 +413,23 @@ canvas {
 
 .ui-hint.is-visible {
   opacity: 1;
+}
+
+.credits {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 17;
+  max-width: min(46ch, calc(100vw - 32px));
+  color: color-mix(in srgb, var(--ui-fg) 72%, transparent);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-align: left;
+  transition: opacity 160ms ease;
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.credits.is-dim {
+  opacity: 0.42;
 }

@@ -6,7 +6,7 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Audio Reactive Master</title>
+    <title>A·R·D* / Audio-Reactive Dessins Geometriques et Artistiques</title>
   </head>
   <body>
     <main></main>
@@ -16,9 +16,7 @@
       </button>
       <button id="toggle-menu" class="control-button" type="button">Show Menu</button>
       <button id="toggle-fullscreen" class="control-button" type="button">Fullscreen</button>
-      <button id="previous-mode" class="control-button" type="button">Previous</button>
-      <button id="next-mode" class="control-button" type="button">Next</button>
-      <button id="random-mode" class="control-button" type="button">Random</button>
+      <button id="random-composition" class="control-button" type="button">Random</button>
       <button id="show-config" class="control-button" type="button">Config</button>
       <button id="show-colors" class="control-button" type="button">Theme</button>
       <button id="show-help" class="control-button" type="button">Help</button>
@@ -28,15 +26,22 @@
       <div class="config-panel-inner">
         <div class="config-head">
           <p class="config-kicker">Live Controls</p>
-          <div class="config-head-actions">
-            <button id="reset-config" class="control-button control-button-small" type="button">
-              Reset Active
+          <div class="config-head-actions config-head-actions-grid">
+            <button id="toggle-config" class="control-button control-button-small control-button-compact" type="button">
+              Hide Panel
             </button>
-            <button id="add-drawing" class="control-button control-button-small" type="button">
+            <span class="config-head-spacer"></span>
+            <button id="import-config" class="control-button control-button-small control-button-compact" type="button">
+              Import
+            </button>
+            <button id="export-config" class="control-button control-button-small control-button-compact" type="button">
+              Export
+            </button>
+            <button id="add-drawing" class="control-button control-button-small control-button-compact" type="button">
               Add Drawing
             </button>
-            <button id="toggle-config" class="control-button control-button-small" type="button">
-              Hide Panel
+            <button id="remove-all" class="control-button control-button-small control-button-compact" type="button">
+              Remove All
             </button>
           </div>
         </div>
@@ -67,21 +72,23 @@
           </div>
         </div>
         <div class="config-copy">
-          <p>`Start Audio` requests microphone access. `Continue Without Mic` runs in demo mode.</p>
-          <p>`Space`: next drawing. `R`: weighted random.</p>
-          <p>`M`: hide or show the menu. If hidden, use the top-right `M` button.</p>
-          <p>`Config` changes drawing behavior. `Theme` changes the interface and default drawing colors.</p>
-          <p>`Audio Source` can drive everything together or switch to `Multiple` for separate routing.</p>
+          <p>`Random` in the top menu creates a fresh composition with 1 to 3 drawings.</p>
+          <p>Each drawing block chooses one original drawing and controls its placement, color, thickness, and audio behavior independently.</p>
+          <p>`Audio Source` selects the main band for that drawing. `Multiple` unlocks separate routing for size, speed, detail, and color.</p>
+          <p>`Audio Sensitivity` affects the whole drawing when it is driven by one source. `Mic Sensitivity` affects the incoming signal globally.</p>
+          <p>`Export` saves the full scene to a file. `Import` restores it later, including theme, colors, and all drawing parameters.</p>
+          <p>`Theme` changes interface and default palette colors. `M` hides or shows the menu.</p>
         </div>
       </div>
     </aside>
+    <input id="import-file" type="file" accept=".json,application/json" hidden>
     <div id="start-overlay" class="overlay">
       <div class="overlay-panel">
-        <p class="overlay-kicker">Audio Reactive Master</p>
+        <p class="overlay-kicker">A·R·D*</p>
         <h1>Enable the microphone, then cycle forms.</h1>
         <p>
-          This sketch uses your mic for motion. `Space` goes to the next form, `R`
-          picks a weighted random one, and `S` hides or shows the interface.
+          This sketch uses your mic for motion. Add drawings in `Config`, then shape each one with
+          its own audio source, placement, color, and advanced parameters.
         </p>
         <p id="overlay-status" class="overlay-status">
           Open this through `http://localhost` or `https` so the browser can expose the microphone.
@@ -95,6 +102,7 @@
       </div>
     </div>
     <div id="ui-hint" class="ui-hint">Show Menu with M or top right M button</div>
+    <div id="credits" class="credits">A·R·D*/ UI by @torobotaki, library by @v3ga, originals by J.P. Delahaye</div>
     <script src="sketch.js"></script>
   </body>
 </html>

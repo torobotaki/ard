@@ -30,6 +30,8 @@ let themePanelEl;
 let themeContentEl;
 let helpPanelEl;
 let uiHintEl;
+let creditsEl;
+let importFileEl;
 let startAudioButtons = [];
 let statusFlash = "";
 let statusFlashUntil = 0;
@@ -39,7 +41,7 @@ let themePanelVisible = false;
 let helpPanelVisible = false;
 let fullscreenActive = false;
 let hideUiAt = 0;
-let sectionOpenState = { global: true, color: false, current: false, theme: true };
+let sectionOpenState = { theme: true };
 let currentFavorites = new Set();
 let globalConfig;
 let globalAudioRouting;
@@ -56,6 +58,7 @@ const AUDIO_SOURCE_OPTIONS = [
   { value: "bass", label: "Bass" },
   { value: "mid", label: "Mid" },
   { value: "treble", label: "Treble" },
+  { value: "custom", label: "Custom" },
 ];
 const GLOBAL_ROUTE_KEYS = new Set(["detail"]);
 const FAVORITE_DRAWINGS = new Set([80, 84, 92, 105, 106, 107, 108, 114, 176, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239]);
@@ -80,6 +83,7 @@ const PALETTES_UI = {
 const DEFAULT_DRAWING_CONFIG = {
   size: 1,
   opacity: 1,
+  lineWeight: 1,
   speed: 1,
   placeX: 0,
   placeY: 0,
@@ -102,8 +106,23 @@ let appConfig = {
   micSensitivity: 1.2,
 };
 
+const BAND_SPLITS = {
+  bassUpperHz: 140,
+  midUpperHz: 1200,
+};
+
+const BAND_COMPENSATION = {
+  bass: 1,
+  mid: 2.25,
+  treble: 36,
+  treblePeak: 11,
+};
+
 const DEFAULT_AUDIO_ROUTING = {
-  mode: "multiple",
+  mode: "level",
+  masterAmount: 1,
+  customLowHz: 1200,
+  customHighHz: 8000,
   size: { source: "bass", amount: 0.35 },
   speed: { source: "level", amount: 0.55 },
   detail: { source: "treble", amount: 0.4 },
@@ -354,11 +373,16 @@ function draw() {
   background(BG_COLOR);
 
   let metrics = getSignalMetrics();
+  if (drawingInstances.length === 0) {
+    if (chromeVisible) drawEmptyHud(metrics);
+    updateUiHint();
+    return;
+  }
   let savedActive = activeDrawingIndex;
   for (let i = 0; i < drawingInstances.length; i++) {
     renderDrawingInstance(i, metrics);
   }
-  setActiveDrawingInstance(savedActive);
+  if (drawingInstances.length > 0) setActiveDrawingInstance(savedActive);
   let mode = modes[currentModeIndex];
   if (chromeVisible && mode) drawHud(mode, metrics);
   updateUiHint();
@@ -411,14 +435,19 @@ function createDrawingInstance(modeIndex) {
   let instance = {
     id: nextDrawingId++,
     modeIndex: modeIndex,
-    layout: "overlay",
     config: cloneData(initialDrawingConfig),
     audioRouting: cloneData(initialDrawingAudioRouting),
     presetAudioRouting: {},
     presetByDrawing: cloneData(initialPresetByDrawing),
   };
+  instance.audioRouting.mode = getDefaultDrawingAudioSource(drawingInstances.length);
   syncDrawingColorsToTheme(true, instance);
   return instance;
+}
+
+function getDefaultDrawingAudioSource(index) {
+  let sequence = ["level", "bass", "treble", "mid"];
+  return sequence[index % sequence.length];
 }
 
 function setInstanceContext(instance) {
@@ -430,6 +459,10 @@ function setInstanceContext(instance) {
 }
 
 function setActiveDrawingInstance(index) {
+  if (drawingInstances.length === 0) {
+    activeDrawingIndex = 0;
+    return;
+  }
   activeDrawingIndex = constrain(index, 0, max(0, drawingInstances.length - 1));
   setInstanceContext(drawingInstances[activeDrawingIndex]);
 }
@@ -446,18 +479,8 @@ function renderDrawingInstance(index, metrics) {
   if (!mode) return;
 
   push();
-  applyDrawingLayoutTransform(instance);
   renderMode({ ...mode, preset: instance.presetByDrawing[mode.drawing] }, metrics);
   pop();
-}
-
-function applyDrawingLayoutTransform(instance) {
-  if (instance.layout === "left" || instance.layout === "right") {
-    let offset = instance.layout === "left" ? -width * 0.24 : width * 0.24;
-    translate(width * 0.5 + offset, height * 0.5);
-    scale(0.48);
-    translate(-width * 0.5, -height * 0.5);
-  }
 }
 
 function setupUi() {
@@ -471,6 +494,8 @@ function setupUi() {
   themeContentEl = document.getElementById("theme-content");
   helpPanelEl = document.getElementById("help-panel");
   uiHintEl = document.getElementById("ui-hint");
+  creditsEl = document.getElementById("credits");
+  importFileEl = document.getElementById("import-file");
   startAudioButtons = [
     document.getElementById("start-audio"),
     document.getElementById("overlay-start"),
@@ -483,9 +508,7 @@ function setupUi() {
   document.getElementById("toggle-fullscreen").addEventListener("click", () => toggleFullscreen());
   document.getElementById("toggle-menu").addEventListener("click", () => toggleChrome());
   document.getElementById("quick-menu").addEventListener("click", () => showMenuOnly());
-  document.getElementById("next-mode").addEventListener("click", () => nextMode());
-  document.getElementById("previous-mode").addEventListener("click", () => previousMode());
-  document.getElementById("random-mode").addEventListener("click", () => randomMode());
+  document.getElementById("random-composition").addEventListener("click", () => randomComposition());
   document.getElementById("show-config").addEventListener("click", () => {
     if (!chromeVisible) {
       chromeVisible = true;
@@ -527,9 +550,20 @@ function setupUi() {
     configPanelVisible = !configPanelVisible;
     applyChromeVisibility();
   });
-  document.getElementById("reset-config").addEventListener("click", () => {
-    resetConfig();
+  document.getElementById("remove-all").addEventListener("click", () => {
+    removeAllDrawings();
   });
+  document.getElementById("export-config").addEventListener("click", () => {
+    exportSceneConfig();
+  });
+  document.getElementById("import-config").addEventListener("click", () => {
+    if (importFileEl) importFileEl.click();
+  });
+  if (importFileEl) {
+    importFileEl.addEventListener("change", (event) => {
+      importSceneConfig(event.target.files && event.target.files[0]);
+    });
+  }
   document.getElementById("add-drawing").addEventListener("click", () => addDrawing());
   document.getElementById("overlay-dismiss").addEventListener("click", () => {
     hideOverlay();
@@ -549,7 +583,7 @@ function setupUi() {
 function renderMode(mode, metrics) {
   push();
   translate(width * globalConfig.placeX * 0.4, height * globalConfig.placeY * 0.4);
-  let strokeColor = getReactiveStrokeColor(metrics);
+  let strokeColor = getReactiveStrokeColor(metrics, globalConfig);
   strokeColor.setAlpha(constrain(globalConfig.opacity, 0, 1) * 255);
   stroke(strokeColor);
   noFill();
@@ -564,7 +598,7 @@ function renderComposition1(preset, metrics, drawing) {
     let k = max(3, floor(getPresetValue(drawing, "K", preset.K, metrics)));
     let h = max(1, floor(getPresetValue(drawing, "H", preset.H, metrics)));
     let rotation = getPresetValue(drawing, "AD", preset.AD, metrics) + metrics.time * getSpeedMod(metrics) * 0.12;
-    strokeWeight(1 + metrics.level * 1.2);
+    applyStrokeWeight(1 + metrics.level * 1.2);
     drawStar(width * 0.5, height * 0.5, radius, k, h, rotation);
     return;
   }
@@ -580,7 +614,7 @@ function renderComposition1(preset, metrics, drawing) {
   let k = max(2, floor(getPresetValue(drawing, "K", preset.K, metrics)));
   let h = max(1, getPresetValue(drawing, "H", preset.H, metrics));
 
-  strokeWeight(1 + metrics.level * 1.4);
+  applyStrokeWeight(1 + metrics.level * 1.4);
   for (let i = 0; i < k1; i++) {
     let centerAngle = (TAU_VALUE * i) / k1 + a1 + time * getSpeedMod(metrics) * 0.08;
     let cx = width * 0.5 + centerRadius * cos(centerAngle);
@@ -592,6 +626,7 @@ function renderComposition1(preset, metrics, drawing) {
 function renderBiparti(preset, metrics, drawing) {
   let n = max(2, floor(getPresetValue(drawing, "N", preset.N, metrics)));
   let wobble = metrics.time * getSpeedMod(metrics) * 0.12;
+  let wobbleScale = 18 + metrics.level * 18;
   let sizeMod = globalConfig.size * (1 + getGlobalAudioAmount("size", metrics));
   let xa = getPresetValue(drawing, "XA", preset.XA, metrics);
   let ya = getPresetValue(drawing, "YA", preset.YA, metrics);
@@ -601,22 +636,28 @@ function renderBiparti(preset, metrics, drawing) {
   let yc = getPresetValue(drawing, "YC", preset.YC, metrics);
   let xd = getPresetValue(drawing, "XD", preset.XD, metrics);
   let yd = getPresetValue(drawing, "YD", preset.YD, metrics);
+  let minParamX = min(xa, xb, xc, xd);
+  let maxParamX = max(xa, xb, xc, xd);
+  let minParamY = min(ya, yb, yc, yd);
+  let maxParamY = max(ya, yb, yc, yd);
+  let paramSpanX = max(0.01, maxParamX - minParamX);
+  let paramSpanY = max(0.01, maxParamY - minParamY);
   let spanX = width * 0.72 * sizeMod;
   let spanY = height * 0.72 * sizeMod;
   let originX = width * 0.5 - spanX * 0.5;
   let originY = height * 0.5 - spanY * 0.5;
 
-  strokeWeight(0.8 + metrics.level);
+  applyStrokeWeight(0.8 + metrics.level);
   for (let i = 0; i <= n; i++) {
-    let x1 = originX + spanX * ((i * xa + (n - i) * xb) / n);
-    let y1 = originY + spanY * ((i * ya + (n - i) * yb) / n);
-    x1 += sin(wobble + i * 0.19) * metrics.mid * 8;
-    y1 += cos(wobble + i * 0.13) * metrics.bass * 8;
+    let x1 = originX + spanX * ((((i * xa + (n - i) * xb) / n) - minParamX) / paramSpanX);
+    let y1 = originY + spanY * ((((i * ya + (n - i) * yb) / n) - minParamY) / paramSpanY);
+    x1 += sin(wobble + i * 0.19) * metrics.mid * wobbleScale;
+    y1 += cos(wobble + i * 0.13) * metrics.bass * wobbleScale;
     for (let j = 0; j <= n; j++) {
-      let x2 = originX + spanX * ((j * xc + (n - j) * xd) / n);
-      let y2 = originY + spanY * ((j * yc + (n - j) * yd) / n);
-      x2 += cos(wobble + j * 0.11) * metrics.treble * 8;
-      y2 += sin(wobble + j * 0.17) * metrics.mid * 8;
+      let x2 = originX + spanX * ((((j * xc + (n - j) * xd) / n) - minParamX) / paramSpanX);
+      let y2 = originY + spanY * ((((j * yc + (n - j) * yd) / n) - minParamY) / paramSpanY);
+      x2 += cos(wobble + j * 0.11) * metrics.treble * wobbleScale;
+      y2 += sin(wobble + j * 0.17) * metrics.mid * wobbleScale;
       line(x1, y1, x2, y2);
     }
   }
@@ -659,6 +700,10 @@ function renderSurface(preset, metrics, drawing) {
   let e1 = floor(getPresetValue(drawing, "E1", preset.E1, metrics));
   let e2 = floor(getPresetValue(drawing, "E2", preset.E2, metrics));
   let scaleMod = globalConfig.size * (1 + getGlobalAudioAmount("size", metrics) * 0.35);
+  let time = metrics.time * getSpeedMod(metrics);
+  let drift = time * 0.12;
+  let warp = 0.022 + metrics.level * 0.035 + metrics.mid * 0.02;
+  let cornerDrift = 0.028 + metrics.bass * 0.04;
   let np = 480;
   let pa = np / m;
   let segments = [];
@@ -675,6 +720,15 @@ function renderSurface(preset, metrics, drawing) {
   let yc0 = getPresetValue(drawing, "YC", preset.YC, metrics);
   let xd0 = getPresetValue(drawing, "XD", preset.XD, metrics);
   let yd0 = getPresetValue(drawing, "YD", preset.YD, metrics);
+
+  xa0 += sin(drift * 0.7 + metrics.bass * 1.4) * cornerDrift;
+  ya0 += cos(drift * 0.5 + metrics.mid * 1.7) * cornerDrift * 0.6;
+  xb0 += cos(drift * 0.9 + metrics.treble * 1.2) * cornerDrift;
+  yb0 += sin(drift * 0.65 + metrics.level * 1.9) * cornerDrift * 0.6;
+  xc0 += sin(drift * 0.8 + PI_VALUE * 0.5) * cornerDrift;
+  yc0 += cos(drift * 0.55 + metrics.treble * 1.5) * cornerDrift * 0.6;
+  xd0 += cos(drift * 0.75 + PI_VALUE * 0.25) * cornerDrift;
+  yd0 += sin(drift * 0.6 + metrics.bass * 1.1) * cornerDrift * 0.6;
 
   for (let pass = 0; pass < (e1 === 1 ? 1 : 2); pass++) {
     let e3 = pass === 1 ? 1 : 0;
@@ -709,9 +763,12 @@ function renderSurface(preset, metrics, drawing) {
         let y = baseY;
         if (e3 === 1) x = (j - i1) / denom;
         else y = (j - i1) / denom;
-        let z = computeSurfaceZ(preset.zMode, x, y, np);
+        let xAnim = constrain(x + warp * sin(TAU_VALUE * (y + x * 0.35) + drift), 0, 1);
+        let yAnim = constrain(y + warp * cos(TAU_VALUE * (x + y * 0.35) - drift * 0.9), 0, 1);
+        let z = computeSurfaceZ(preset.zMode, xAnim, yAnim, np);
         let xf = j * pa;
-        let yf = (((j - i1) * yq + (i2 - j) * yp) / denom) + z;
+        let sweep = sin(drift + (j / max(1, m)) * PI_VALUE) * np * (0.008 + metrics.treble * 0.02);
+        let yf = (((j - i1) * yq + (i2 - j) * yp) / denom) + z + sweep;
         let current = { x: xf, y: yf };
         let visible = true;
 
@@ -874,7 +931,7 @@ function renderComposition2(preset, metrics, drawing) {
   let r = getPresetValue(drawing, "R", preset.R, metrics);
   let rr = constrain(getPresetValue(drawing, "RR", preset.RR, metrics), 0.1, 0.999);
 
-  strokeWeight(0.7 + metrics.level);
+  applyStrokeWeight(0.7 + metrics.level);
   for (let i = 0; i < n; i++) {
     let decay = pow(rr + metrics.treble * 0.015, i);
     let ringRadius = unit * r1 * decay * globalConfig.size * sizeMod;
@@ -899,7 +956,7 @@ function renderOrbital(preset, metrics, drawing) {
   let yScale = getPresetValue(drawing, "yScale", preset.yScale, metrics);
   let r2Scale = getPresetValue(drawing, "r2Scale", preset.r2Scale, metrics);
 
-  strokeWeight(1 + metrics.level);
+  applyStrokeWeight(1 + metrics.level);
   beginShape();
   for (let i = 0; i <= detail; i++) {
     let ratio = i / detail;
@@ -967,7 +1024,7 @@ function renderTournante(preset, metrics) {
   let pulseMin = getPresetValue(92, "pulseMin", preset.pulseMin || 0.5, metrics);
   let pulseMax = getPresetValue(92, "pulseMax", preset.pulseMax || 1, metrics);
 
-  strokeWeight(1 + metrics.level * 1.3);
+  applyStrokeWeight(1 + metrics.level * 1.3);
   beginShape();
   for (let i = 0; i <= detail; i++) {
     let ratio = i / detail;
@@ -1004,7 +1061,7 @@ function renderSpiral(preset, metrics, drawing) {
   let yOffset = getPresetValue(drawing, "yOffset", preset.yOffset, metrics);
   let time = metrics.time;
 
-  strokeWeight(0.9 + metrics.level * 1.2);
+  applyStrokeWeight(0.9 + metrics.level * 1.2);
   beginShape();
   for (let i = 0; i <= detail; i++) {
     let ratio = i / detail;
@@ -1034,7 +1091,7 @@ function renderModulo(preset, metrics, drawing) {
   let phase = metrics.time * getSpeedMod(metrics) * 0.25;
   let centerY = height * 0.5;
 
-  strokeWeight(0.85 + metrics.level);
+  applyStrokeWeight(0.85 + metrics.level);
   for (let i = 0; i < m; i++) {
     let a1 = (k1 * i * PI_VALUE) / n + phase;
     let a2 = (k2 * i * PI_VALUE) / n - phase * 1.4;
@@ -1064,7 +1121,7 @@ function renderBatons(preset, metrics, drawing) {
   let batonDecay = getPresetValue(drawing, "batonDecay", preset.batonDecay || 0.8, metrics);
   let yScale = getPresetValue(drawing, "yScale", preset.yScale || 1, metrics);
 
-  strokeWeight(0.8 + metrics.level * 1.2);
+  applyStrokeWeight(0.8 + metrics.level * 1.2);
   for (let ring = 1; ring <= m; ring++) {
     let r1 = unit / 3 * globalConfig.size * sizeMod * pow(ringDecay, ring - 1) * (1 + metrics.bass * 0.04);
     let r2 = (unit / 12) * batonScale * globalConfig.size * sizeMod * pow(batonDecay, ring - 1) * (1 + metrics.mid * 0.18);
@@ -1090,7 +1147,7 @@ function renderD3Cube(preset, metrics, drawing) {
   let qy = getPresetValue(drawing, "QY", preset.QY, metrics);
   let qz = getPresetValue(drawing, "QZ", preset.QZ, metrics);
 
-  strokeWeight(0.9 + metrics.level);
+  applyStrokeWeight(0.9 + metrics.level);
 
   if (preset.variant === "single") {
     drawCubePolylineSet((point) => point, preset, az, ay, ax, qx, qy, qz, unit, scale);
@@ -1211,7 +1268,7 @@ function renderElastic(preset, metrics) {
   let maxI = preset.gridX || 20;
   let maxJ = preset.gridY || 40;
 
-  strokeWeight(0.95 + metrics.level);
+  applyStrokeWeight(0.95 + metrics.level);
   for (let axis = 0; axis <= 1; axis++) {
     for (let i = 0; i <= maxI; i++) {
       beginShape();
@@ -1339,7 +1396,7 @@ function drawFittedSegments(segments, minX, minY, maxX, maxY, fitScale = 1) {
   let fit = min((width * 0.7) / spanX, (height * 0.7) / spanY) * fitScale;
   let centerX = (minX + maxX) * 0.5;
   let centerY = (minY + maxY) * 0.5;
-  strokeWeight(0.9 + smoothedLevel);
+  applyStrokeWeight(0.9 + smoothedLevel);
   for (let segment of segments) {
     line(
       (segment[0].x - centerX) * fit + width * 0.5,
@@ -1357,7 +1414,7 @@ function drawFittedPolyline(points, minX, minY, maxX, maxY, fitScale = 1) {
   let fit = min((width * 0.7) / spanX, (height * 0.7) / spanY) * fitScale;
   let centerX = (minX + maxX) * 0.5;
   let centerY = (minY + maxY) * 0.5;
-  strokeWeight(0.9 + smoothedLevel);
+  applyStrokeWeight(0.9 + smoothedLevel);
   beginShape();
   for (let point of points) {
     vertex((point.x - centerX) * fit + width * 0.5, (point.y - centerY) * fit + height * 0.5);
@@ -1376,7 +1433,7 @@ function renderD3StructureA(preset, metrics, drawing) {
   let m = getPresetValue(drawing, "M", preset.M, metrics);
   let k = max(0, floor(getPresetValue(drawing, "K", preset.K, metrics)));
 
-  strokeWeight(0.9 + metrics.level);
+  applyStrokeWeight(0.9 + metrics.level);
   for (let j = 0; j <= k; j++) {
     let ra = preset.raMode === "wide" ? pow(0.8, j) : pow(0.6, j);
     beginShape();
@@ -1405,7 +1462,7 @@ function renderD3StructureB(preset, metrics, drawing) {
   let r1Base = getPresetValue(drawing, "R1", preset.R1, metrics);
   let r2Base = getPresetValue(drawing, "R2", preset.R2, metrics);
 
-  strokeWeight(0.95 + metrics.level);
+  applyStrokeWeight(0.95 + metrics.level);
   beginShape();
   for (let i = 0; i <= n; i++) {
     let aa = (10 * PI_VALUE * i) / n + time * getSpeedMod(metrics) * 0.08;
@@ -1476,9 +1533,13 @@ function drawStar(cx, cy, radius, k, h, rotation) {
   endShape(CLOSE);
 }
 
+function applyStrokeWeight(weight) {
+  strokeWeight(weight * globalConfig.lineWeight);
+}
+
 function drawHud(mode, metrics) {
   noStroke();
-  fill(getReactiveStrokeColor(metrics));
+  fill(themeConfig.strokeColor);
   textAlign(LEFT, TOP);
   textSize(14);
 
@@ -1489,20 +1550,60 @@ function drawHud(mode, metrics) {
   else micStatus = "use the start button to enable microphone";
   if (statusFlash && millis() < statusFlashUntil) micStatus = statusFlash;
 
-  text(mode.label, 18, 18);
-  text(micStatus, 18, 38);
-  text(
+  let y = 18;
+  if (drawingInstances.length > 1) {
+    text("COMPOSITION:", 18, y);
+    y += 20;
+    for (let instance of drawingInstances) {
+      let entry = modes[instance.modeIndex];
+      if (entry) {
+        fill(instance.config.drawColor || themeConfig.strokeColor);
+        text(entry.label, 18, y);
+        y += 18;
+      }
+    }
+    fill(themeConfig.strokeColor);
+  } else {
+    text(mode.label, 18, y);
+    y += 20;
+  }
+  text(micStatus, 18, y);
+  y += 20;
+  let statsPrefix =
     "bass " +
-      nf(metrics.bass, 1, 2) +
-      "  mid " +
-      nf(metrics.mid, 1, 2) +
-      "  treble " +
-      nf(metrics.treble, 1, 2) +
-      "  fps " +
-      nf(frameRate(), 2, 1),
-    18,
-    58
-  );
+    nf(metrics.bass, 1, 2) +
+    "  mid " +
+    nf(metrics.mid, 1, 2) +
+    "  treble " +
+    nf(metrics.treble, 1, 2) +
+    "  ";
+  let fpsLabel = "fps " + nf(frameRate(), 2, 1);
+  text(statsPrefix, 18, y);
+  let fpsX = 18 + textWidth(statsPrefix);
+  if (frameRate() < 24) fill(color(rotateHexHue(globalConfig.drawColor, 180)));
+  text(fpsLabel, fpsX, y);
+}
+
+function drawEmptyHud(metrics) {
+  noStroke();
+  fill(themeConfig.strokeColor);
+  textAlign(LEFT, TOP);
+  textSize(14);
+  text("COMPOSITION:", 18, 18);
+  text("No drawings loaded", 18, 38);
+  let statsPrefix =
+    "bass " +
+    nf(metrics.bass, 1, 2) +
+    "  mid " +
+    nf(metrics.mid, 1, 2) +
+    "  treble " +
+    nf(metrics.treble, 1, 2) +
+    "  ";
+  let fpsLabel = "fps " + nf(frameRate(), 2, 1);
+  text(statsPrefix, 18, 58);
+  let fpsX = 18 + textWidth(statsPrefix);
+  if (frameRate() < 24) fill(color(rotateHexHue(themeConfig.strokeColor, 180)));
+  text(fpsLabel, fpsX, 58);
 }
 
 function keyPressed() {
@@ -1587,6 +1688,7 @@ function applyChromeVisibility() {
   if (configPanelEl) configPanelEl.classList.toggle("is-hidden", !chromeVisible || !configPanelVisible);
   if (themePanelEl) themePanelEl.classList.toggle("is-hidden", !chromeVisible || !themePanelVisible);
   if (helpPanelEl) helpPanelEl.classList.toggle("is-hidden", !chromeVisible || !helpPanelVisible);
+  if (creditsEl) creditsEl.classList.toggle("is-dim", !chromeVisible);
   let toggleButton = document.getElementById("toggle-config");
   if (toggleButton) toggleButton.textContent = configPanelVisible ? "Hide Panel" : "Show Panel";
   setButtonState("toggle-menu", chromeVisible);
@@ -1674,7 +1776,7 @@ function resetConfig() {
   syncDrawingColorsToTheme(true, instance);
   setActiveDrawingInstance(activeDrawingIndex);
   renderConfigPanel();
-  flashStatus("Active drawing reset");
+  flashStatus("This drawing reset");
 }
 
 function updateOverlayStatus(message) {
@@ -1701,10 +1803,17 @@ function getSignalMetrics() {
   if (micReady) {
     analyser.getByteFrequencyData(freqData);
     analyser.getByteTimeDomainData(timeData);
+    let nyquist = audioContext.sampleRate * 0.5;
+    let bassUpper = min(BAND_SPLITS.bassUpperHz, nyquist - 100);
+    let midUpper = min(BAND_SPLITS.midUpperHz, nyquist);
 
-    let bass = averageBand(20, 140) * appConfig.micSensitivity;
-    let mid = averageBand(140, 1600) * appConfig.micSensitivity;
-    let treble = averageBand(1600, 6400) * appConfig.micSensitivity;
+    let bass = averageBand(20, bassUpper) * appConfig.micSensitivity * BAND_COMPENSATION.bass;
+    let mid = averageBand(bassUpper, midUpper) * appConfig.micSensitivity * BAND_COMPENSATION.mid;
+    let trebleBody = averageWeightedBand(midUpper, nyquist, 3.6, 0.55);
+    let trebleAir = peakBand(max(4000, midUpper * 2), nyquist);
+    let treble =
+      appConfig.micSensitivity *
+      (trebleBody * BAND_COMPENSATION.treble + trebleAir * BAND_COMPENSATION.treblePeak);
     let level = waveformLevel() * appConfig.micSensitivity;
 
     smoothedBass = lerp(smoothedBass, bass, 0.16);
@@ -1736,11 +1845,25 @@ function getAudioMetric(metrics, source) {
   return metrics.level;
 }
 
+function getCustomBandMetric(lowHz, highHz) {
+  if (!micReady || !audioContext) return smoothedTreble;
+  let nyquist = audioContext.sampleRate * 0.5;
+  let low = constrain(min(lowHz, highHz), 20, nyquist - 10);
+  let high = constrain(max(lowHz, highHz), low + 10, nyquist);
+  return averageBand(low, high) * appConfig.micSensitivity;
+}
+
 function getGlobalAudioAmount(key, metrics) {
   if (key === "mode") return 0;
   let route = globalAudioRouting[key];
   if (!route) return 0;
-  let source = globalAudioRouting.mode === "multiple" ? route.source : globalAudioRouting.mode;
+  if (globalAudioRouting.mode !== "multiple") {
+    if (globalAudioRouting.mode === "custom") {
+      return globalAudioRouting.masterAmount * getCustomBandMetric(globalAudioRouting.customLowHz, globalAudioRouting.customHighHz);
+    }
+    return globalAudioRouting.masterAmount * getAudioMetric(metrics, globalAudioRouting.mode);
+  }
+  let source = route.source;
   return route.amount * getAudioMetric(metrics, source);
 }
 
@@ -1748,10 +1871,104 @@ function getPresetRouteId(drawing, key) {
   return drawing + ":" + key;
 }
 
+function getModeByDrawing(drawing) {
+  return modes.find((mode) => mode.drawing === drawing) || null;
+}
+
+function getDefaultPresetRoute(drawing, key) {
+  let mode = getModeByDrawing(drawing);
+  if (!mode) return { source: "level", amount: 0 };
+  let preset = mode.preset || {};
+  let isSpiral = mode.label.startsWith("COURBES SPIRALES");
+
+  if (mode.category === "surfaces") {
+    if (key === "YB") return { source: "mid", amount: 3.2 };
+    if (key === "YC") return { source: "treble", amount: 1.2 };
+    if (key === "XB" || key === "XD") return { source: "bass", amount: 0.65 };
+    if (key === "E1" || key === "E2" || key === "zMode") return { source: "off", amount: 0 };
+  }
+
+  if (mode.category === "composition") {
+    if (key === "AD") return { source: "treble", amount: 0.85 };
+    if (key === "R" || key === "R1") return { source: "bass", amount: 0.35 };
+    if (key === "A1") return { source: "mid", amount: 0.22 };
+    if (key === "RR") return { source: "level", amount: 0.18 };
+  }
+
+  if (mode.category === "joligone") {
+    if (key === "AN") return { source: "mid", amount: 0.65 };
+    if (key === "RR") return { source: "bass", amount: 0.45 };
+    if (key === "yScale") return { source: "treble", amount: 0.2 };
+    if (key === "RA") return { source: "level", amount: 0.08 };
+  }
+
+  if (mode.category === "biparti") {
+    if (key === "YB") return { source: "mid", amount: 2.2 };
+    if (key === "YC") return { source: "treble", amount: 1.6 };
+    if (key === "XB" || key === "XD") return { source: "bass", amount: 0.95 };
+    if (key === "XA" || key === "XC") return { source: "level", amount: 0.45 };
+  }
+
+  if (isSpiral) {
+    if (key === "T") return { source: "mid", amount: 0.85 };
+    if (key === "turnScale") return { source: "treble", amount: 0.55 };
+    if (key === "R") return { source: "bass", amount: 0.35 };
+    if (key === "yScale") return { source: "mid", amount: 0.2 };
+    if (key === "yOffset") return { source: "bass", amount: 0.08 };
+  }
+
+  if (mode.category === "orbital") {
+    if (key === "T2") return { source: "treble", amount: 0.95 };
+    if (key === "r2Scale") return { source: "mid", amount: 0.75 };
+    if (key === "R1") return { source: "bass", amount: 0.35 };
+    if (key === "yScale") return { source: "mid", amount: 0.25 };
+    if (key === "T1") return { source: "bass", amount: 0.18 };
+  }
+
+  if (mode.category === "tournante") {
+    if (key === "T2") return { source: "treble", amount: 1.1 };
+    if (key === "R2") return { source: "mid", amount: 0.7 };
+    if (key === "R1") return { source: "bass", amount: 0.25 };
+    if (key === "yScale") return { source: "mid", amount: 0.22 };
+    if (key === "T1") return { source: "bass", amount: 0.15 };
+  }
+
+  if (mode.category === "modulo") {
+    if (key === "H") return { source: "treble", amount: 1.2 };
+    if (key === "K2") return { source: "mid", amount: 0.5 };
+    if (key === "K1") return { source: "bass", amount: 0.28 };
+    if (key === "M" && "M" in preset) return { source: "level", amount: 0.15 };
+  }
+
+  if (mode.category === "batons") {
+    if (key === "K") return { source: "treble", amount: 1 };
+    if (key === "batonScale") return { source: "mid", amount: 0.55 };
+    if (key === "ringDecay") return { source: "bass", amount: 0.18 };
+    if (key === "yScale") return { source: "mid", amount: 0.18 };
+  }
+
+  if (mode.category === "elastic") {
+    if (key === "angleAmount") return { source: "mid", amount: 2.4 };
+    if (key === "angleWave") return { source: "treble", amount: 1.1 };
+    if (key === "distPower") return { source: "bass", amount: 0.9 };
+  }
+
+  if (mode.category === "d3structures") {
+    if (key === "AY") return { source: "bass", amount: 0.85 };
+    if (key === "AZ") return { source: "mid", amount: 0.65 };
+    if (key === "AX") return { source: "treble", amount: 0.4 };
+    if (key === "QX") return { source: "level", amount: 0.3 };
+    if (key === "QY" || key === "QZ") return { source: "bass", amount: 0.18 };
+    if (key === "R2") return { source: "mid", amount: 0.38 };
+  }
+
+  return { source: "level", amount: 0 };
+}
+
 function getPresetRoute(drawing, key) {
   let id = getPresetRouteId(drawing, key);
   if (!presetAudioRouting[id]) {
-    presetAudioRouting[id] = { source: "level", amount: 0 };
+    presetAudioRouting[id] = getDefaultPresetRoute(drawing, key);
   }
   return presetAudioRouting[id];
 }
@@ -1762,7 +1979,97 @@ function getPresetValue(drawing, key, baseValue, metrics) {
   let metric = getAudioMetric(metrics, route.source);
   let range = inferRange(key, baseValue === 0 ? 1 : baseValue);
   let span = max(0.01, range.max - range.min);
-  return baseValue + metric * route.amount * span * 0.1;
+  let multiplier = getPresetResponseMultiplier(drawing, key);
+  return baseValue + metric * route.amount * span * multiplier;
+}
+
+function getPresetResponseMultiplier(drawing, key) {
+  let mode = getModeByDrawing(drawing);
+  if (!mode) return 0.1;
+  let isSpiral = mode.label.startsWith("COURBES SPIRALES");
+
+  if (mode.category === "surfaces") {
+    if (key === "YB" || key === "YC" || key === "YA" || key === "YD") return 0.85;
+    if (key === "XB" || key === "XC" || key === "XA" || key === "XD") return 0.45;
+    if (key === "N" || key === "M") return 0.24;
+    return 0.12;
+  }
+
+  if (mode.category === "biparti") {
+    if (key === "YB" || key === "YC" || key === "YA" || key === "YD") return 0.7;
+    if (key === "XB" || key === "XC" || key === "XA" || key === "XD") return 0.38;
+    if (key === "N") return 0.14;
+    return 0.12;
+  }
+
+  if (mode.category === "elastic") {
+    if (key === "angleAmount") return 0.5;
+    if (key === "angleWave") return 0.34;
+    if (key === "distPower") return 0.28;
+    return 0.12;
+  }
+
+  if (mode.category === "composition") {
+    if (key === "AD" || key === "A1") return 0.28;
+    if (key === "R" || key === "R1" || key === "RR") return 0.2;
+    if (key === "K" || key === "H" || key === "K1") return 0.12;
+    return 0.14;
+  }
+
+  if (mode.category === "joligone") {
+    if (key === "AN") return 0.34;
+    if (key === "RR") return 0.26;
+    if (key === "yScale") return 0.18;
+    if (key === "RA") return 0.08;
+    return 0.14;
+  }
+
+  if (isSpiral) {
+    if (key === "T" || key === "turnScale") return 0.28;
+    if (key === "R" || key === "yScale") return 0.2;
+    if (key === "yOffset") return 0.12;
+    if (key === "L") return 0.08;
+    return 0.14;
+  }
+
+  if (mode.category === "orbital") {
+    if (key === "T2" || key === "r2Scale") return 0.28;
+    if (key === "R1" || key === "yScale") return 0.18;
+    if (key === "T1" || key === "K1" || key === "K2") return 0.12;
+    return 0.14;
+  }
+
+  if (mode.category === "tournante") {
+    if (key === "T2" || key === "R2") return 0.3;
+    if (key === "R1" || key === "yScale") return 0.18;
+    if (key === "T1" || key === "H1" || key === "H2" || key === "K1" || key === "K2") return 0.12;
+    return 0.14;
+  }
+
+  if (mode.category === "modulo") {
+    if (key === "H") return 0.2;
+    if (key === "K2") return 0.16;
+    if (key === "K1") return 0.12;
+    if (key === "M" || key === "N") return 0.08;
+    return 0.1;
+  }
+
+  if (mode.category === "batons") {
+    if (key === "K" || key === "batonScale") return 0.24;
+    if (key === "ringDecay" || key === "yScale") return 0.16;
+    if (key === "N" || key === "M") return 0.08;
+    return 0.12;
+  }
+
+  if (mode.category === "d3structures") {
+    if (key === "AY" || key === "AZ") return 0.28;
+    if (key === "AX") return 0.18;
+    if (key === "QX" || key === "QY" || key === "QZ") return 0.14;
+    if (key === "R2" || key === "M" || key === "K") return 0.1;
+    return 0.1;
+  }
+
+  return 0.1;
 }
 
 function getSpeedMod(metrics) {
@@ -1775,7 +2082,6 @@ function getDetailCount(baseDetail, metrics) {
 
 function updatePaletteFromConfig() {
   BG_COLOR = themeConfig.bgColor;
-  STROKE_COLOR = globalConfig.drawColor;
   updateUiTheme();
 }
 
@@ -1788,10 +2094,10 @@ function updateUiTheme() {
   document.documentElement.style.setProperty("--ui-hover", themeConfig.hoverColor);
 }
 
-function getReactiveStrokeColor(metrics) {
-  let base = color(STROKE_COLOR);
-  if (globalConfig.colorMode === "static") return base;
-  let accent = color(globalConfig.audioAccentColor);
+function getReactiveStrokeColor(metrics, config) {
+  let base = color(config.drawColor);
+  if (config.colorMode === "static") return base;
+  let accent = color(config.audioAccentColor);
   return lerpColor(base, accent, constrain(getGlobalAudioAmount("color", metrics), 0, 1));
 }
 
@@ -1804,9 +2110,9 @@ function applyPalettePreset(name) {
   themeConfig.bgColor = entry.bg;
   themeConfig.strokeColor = entry.stroke;
   themeConfig.accentColor = entry.accent;
-  themeConfig.panelColor = name === "abyss" ? "rgba(28, 37, 65, 0.84)" : "rgba(1, 22, 80, 0.8)";
-  themeConfig.controlColor = name === "abyss" ? "rgba(58, 80, 107, 0.84)" : "rgba(1, 58, 187, 0.72)";
-  themeConfig.hoverColor = name === "abyss" ? "rgba(111, 255, 233, 0.18)" : "rgba(247, 235, 35, 0.15)";
+  themeConfig.panelColor = rgbaFromHex(mixHex(entry.bg, entry.accent, 0.18), 0.84);
+  themeConfig.controlColor = rgbaFromHex(mixHex(entry.bg, entry.stroke, 0.3), 0.78);
+  themeConfig.hoverColor = rgbaFromHex(entry.accent, 0.18);
   for (let instance of drawingInstances) {
     if (instance.config.drawColor === previousStroke) instance.config.drawColor = themeConfig.strokeColor;
     if (instance.config.audioAccentColor === previousAccent) instance.config.audioAccentColor = themeConfig.accentColor;
@@ -1824,13 +2130,9 @@ function syncDrawingColorsToTheme(force, instance = null) {
 
 function addDrawing() {
   let instance = createDrawingInstance(pickWeightedModeIndex());
-  if (drawingInstances.length === 1 && drawingInstances[0].layout === "overlay") {
-    drawingInstances[0].layout = "left";
-    instance.layout = "right";
-  } else if (drawingInstances.some((entry) => entry.layout === "left") && !drawingInstances.some((entry) => entry.layout === "right")) {
-    instance.layout = "right";
-  }
+  instance.config.drawColor = getSuggestedDrawingColor();
   drawingInstances.push(instance);
+  collapseOtherDrawingBlocks(instance.id);
   setActiveDrawingInstance(drawingInstances.length - 1);
   renderConfigPanel();
   flashStatus("Drawing added");
@@ -1839,11 +2141,85 @@ function addDrawing() {
 function removeDrawing(index) {
   if (drawingInstances.length <= 1) return;
   drawingInstances.splice(index, 1);
-  if (drawingInstances.length === 1) drawingInstances[0].layout = "overlay";
   if (activeDrawingIndex >= drawingInstances.length) activeDrawingIndex = drawingInstances.length - 1;
   setActiveDrawingInstance(activeDrawingIndex);
   renderConfigPanel();
   flashStatus("Drawing removed");
+}
+
+function removeAllDrawings() {
+  drawingInstances = [];
+  activeDrawingIndex = 0;
+  sectionOpenState = { theme: true };
+  renderConfigPanel();
+  flashStatus("All drawings removed");
+}
+
+function randomComposition() {
+  removeAllDrawings();
+  let count = floor(random(1, 4));
+  for (let i = 0; i < count; i++) {
+    addDrawing();
+  }
+  flashStatus(`Random composition: ${count} drawing${count === 1 ? "" : "s"}`);
+}
+
+function buildSceneSnapshot() {
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    appConfig: cloneData(appConfig),
+    themeConfig: cloneData(themeConfig),
+    drawingInstances: cloneData(drawingInstances),
+    activeDrawingIndex: activeDrawingIndex,
+    sectionOpenState: cloneData(sectionOpenState),
+  };
+}
+
+function exportSceneConfig() {
+  let snapshot = buildSceneSnapshot();
+  let blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json" });
+  let url = URL.createObjectURL(blob);
+  let link = document.createElement("a");
+  link.href = url;
+  link.download = `dessinsgeo-scene-${Date.now()}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  flashStatus("Scene exported");
+}
+
+async function importSceneConfig(file) {
+  if (!file) return;
+  try {
+    let raw = await file.text();
+    let data = JSON.parse(raw);
+    if (!data || !Array.isArray(data.drawingInstances)) throw new Error("Invalid scene file");
+
+    appConfig = Object.assign({}, appConfig, data.appConfig || {});
+    themeConfig = Object.assign({}, themeConfig, data.themeConfig || {});
+    drawingInstances = data.drawingInstances.map((entry, index) => ({
+      id: typeof entry.id === "number" ? entry.id : nextDrawingId + index,
+      modeIndex: typeof entry.modeIndex === "number" ? constrain(entry.modeIndex, 0, max(0, modes.length - 1)) : pickWeightedModeIndex(),
+      config: Object.assign(cloneData(initialDrawingConfig), entry.config || {}),
+      audioRouting: Object.assign(cloneData(initialDrawingAudioRouting), entry.audioRouting || {}),
+      presetAudioRouting: cloneData(entry.presetAudioRouting || {}),
+      presetByDrawing: Object.assign(cloneData(initialPresetByDrawing), entry.presetByDrawing || {}),
+    }));
+    nextDrawingId = drawingInstances.reduce((maxId, entry) => max(maxId, entry.id), 0) + 1;
+    sectionOpenState = Object.assign({ theme: true }, data.sectionOpenState || {});
+    setActiveDrawingInstance(constrain(data.activeDrawingIndex || 0, 0, max(0, drawingInstances.length - 1)));
+    updateUiTheme();
+    saveTheme();
+    renderThemePanel();
+    renderConfigPanel();
+    flashStatus("Scene imported");
+  } catch (_error) {
+    flashStatus("Import failed");
+  } finally {
+    if (importFileEl) importFileEl.value = "";
+  }
 }
 
 function toggleFullscreen() {
@@ -1860,7 +2236,7 @@ function renderConfigPanel() {
       <div class="config-row">
         <label for="app-micSensitivity">Mic Sensitivity</label>
         <span id="value-app-micSensitivity" class="config-value">${formatValue("micSensitivity", appConfig.micSensitivity)}</span>
-        <input id="app-micSensitivity" data-app-key="micSensitivity" type="range" min="0" max="10" step="0.01" value="${appConfig.micSensitivity}">
+        <input id="app-micSensitivity" data-app-key="micSensitivity" type="range" min="0" max="2" step="0.01" value="${appConfig.micSensitivity}">
       </div>
     </section>
   `;
@@ -1874,6 +2250,12 @@ function renderConfigPanel() {
   bindInstanceControls();
   bindSectionToggles();
   setActiveDrawingInstance(savedActive);
+}
+
+function collapseOtherDrawingBlocks(activeId) {
+  for (let instance of drawingInstances) {
+    sectionOpenState[`drawing-${instance.id}`] = instance.id === activeId;
+  }
 }
 
 function renderThemePanel() {
@@ -1935,6 +2317,7 @@ function bindInstanceControls() {
       setActiveDrawingInstance(instanceIndex);
 
       if (el.dataset.instanceAction === "activate") {
+        sectionOpenState[`drawing-${instance.id}`] = true;
         renderConfigPanel();
         return;
       }
@@ -1942,8 +2325,33 @@ function bindInstanceControls() {
         toggleFavorite();
         return;
       }
+      if (el.dataset.instanceAction === "reset") {
+        resetConfig();
+        return;
+      }
       if (el.dataset.instanceAction === "remove") {
         removeDrawing(instanceIndex);
+        return;
+      }
+      if (el.dataset.instanceAction === "previous") {
+        instance.modeIndex = (instance.modeIndex - 1 + modes.length) % modes.length;
+        setActiveDrawingInstance(instanceIndex);
+        renderConfigPanel();
+        flashStatus("Mode: " + modes[instance.modeIndex].label);
+        return;
+      }
+      if (el.dataset.instanceAction === "next") {
+        instance.modeIndex = (instance.modeIndex + 1) % modes.length;
+        setActiveDrawingInstance(instanceIndex);
+        renderConfigPanel();
+        flashStatus("Mode: " + modes[instance.modeIndex].label);
+        return;
+      }
+      if (el.dataset.instanceAction === "random") {
+        instance.modeIndex = pickWeightedModeIndex();
+        setActiveDrawingInstance(instanceIndex);
+        renderConfigPanel();
+        flashStatus("Random: " + modes[instance.modeIndex].label);
         return;
       }
       if (el.dataset.instanceModeIndex) {
@@ -1951,11 +2359,6 @@ function bindInstanceControls() {
         setActiveDrawingInstance(instanceIndex);
         renderConfigPanel();
         flashStatus("Picked: " + modes[instance.modeIndex].label);
-        return;
-      }
-      if (el.dataset.instanceLayout) {
-        instance.layout = el.value;
-        flashStatus("Layout: " + el.value);
         return;
       }
       if (el.dataset.instanceGlobalKey) {
@@ -1974,6 +2377,23 @@ function bindInstanceControls() {
         }
         instance.config[key] = value;
         updateValueText(el.dataset.valueId, key, value);
+        if (key === "drawColor") {
+          renderConfigPanel();
+        }
+        return;
+      }
+      if (el.dataset.instanceRoutingKey) {
+        let key = el.dataset.instanceRoutingKey;
+        instance.audioRouting[key] = Number(el.value);
+        if (key === "customLowHz") {
+          instance.audioRouting.customLowHz = min(instance.audioRouting.customLowHz, instance.audioRouting.customHighHz - 10);
+        }
+        if (key === "customHighHz") {
+          instance.audioRouting.customHighHz = max(instance.audioRouting.customHighHz, instance.audioRouting.customLowHz + 10);
+        }
+        updateValueText(el.dataset.valueId, key, instance.audioRouting[key]);
+        if (key === "customLowHz") updateValueText("value-instance-" + instanceIndex + "-global-customLowHz", key, instance.audioRouting.customLowHz);
+        if (key === "customHighHz") updateValueText("value-instance-" + instanceIndex + "-global-customHighHz", key, instance.audioRouting.customHighHz);
         return;
       }
       if (el.dataset.instancePresetKey) {
@@ -1994,6 +2414,9 @@ function bindInstanceControls() {
         updateValueText(el.dataset.valueId, field === "amount" ? key : field, route[field]);
       }
     };
+    if (el.tagName === "BUTTON" || el.dataset.instanceAction) {
+      el.addEventListener("click", handler);
+    }
     el.addEventListener("input", handler);
     el.addEventListener("change", handler);
   });
@@ -2032,8 +2455,16 @@ function updateThemeConfigFromInput(el) {
     themeConfig[key] = value;
   }
   themeConfig.palette = "custom";
-  if (key === "strokeColor" && globalConfig.drawColor === previousStroke) globalConfig.drawColor = value;
-  if (key === "accentColor" && globalConfig.audioAccentColor === previousAccent) globalConfig.audioAccentColor = value;
+  if (key === "strokeColor") {
+    for (let instance of drawingInstances) {
+      if (instance.config.drawColor === previousStroke) instance.config.drawColor = value;
+    }
+  }
+  if (key === "accentColor") {
+    for (let instance of drawingInstances) {
+      if (instance.config.audioAccentColor === previousAccent) instance.config.audioAccentColor = value;
+    }
+  }
   let paletteSelect = document.getElementById("theme-palette");
   if (paletteSelect) paletteSelect.value = "custom";
   saveTheme();
@@ -2063,33 +2494,43 @@ function renderDrawingConfigBlock(instanceIndex) {
     ? `<button class="control-button control-button-small" type="button" data-instance-index="${instanceIndex}" data-instance-action="remove">Remove</button>`
     : "";
 
+  let drawingSectionKey = `drawing-${instance.id}`;
+  let drawingOpen = sectionOpenState[drawingSectionKey];
+  if (drawingOpen === undefined) drawingOpen = instanceIndex === activeDrawingIndex;
+  let heart = isFavorite ? "♥ " : "";
+  let sourceLabel = getMasterAudioSourceLabel(instance.audioRouting.mode);
+
   return `
-    <section class="drawing-block ${instanceIndex === activeDrawingIndex ? "is-active" : ""}">
-      <div class="drawing-block-head">
-        <div class="drawing-block-title">Drawing ${instanceIndex + 1}</div>
-        <div class="drawing-block-actions">
-          <button class="control-button control-button-small ${instanceIndex === activeDrawingIndex ? "is-active" : ""}" type="button" data-instance-index="${instanceIndex}" data-instance-action="activate">Active</button>
-          <button class="control-button control-button-small" type="button" data-instance-index="${instanceIndex}" data-instance-action="favorite">${isFavorite ? "♥ Favorite" : "♡ Favorite"}</button>
-          ${removeButton}
+    <section class="drawing-block ${instanceIndex === activeDrawingIndex ? "is-active" : ""} ${instanceIndex % 2 === 0 ? "is-even" : "is-odd"}" style="--drawing-accent: ${instance.config.drawColor};">
+      <details class="drawing-block-details" data-section-key="${drawingSectionKey}" ${drawingOpen ? "open" : ""}>
+        <summary class="drawing-block-summary">
+          <div class="drawing-block-head">
+            <div>
+              <div class="drawing-block-title">Drawing ${instanceIndex + 1} [${sourceLabel}]</div>
+              <div class="drawing-block-meta">${heart}${mode.drawing}. ${mode.label}</div>
+            </div>
+          </div>
+        </summary>
+        <div class="drawing-block-body">
+          <div class="drawing-block-actions">
+            <button class="control-button control-button-small" type="button" data-instance-index="${instanceIndex}" data-instance-action="reset">Reset This Drawing</button>
+            <button class="control-button control-button-small" type="button" data-instance-index="${instanceIndex}" data-instance-action="previous">Previous</button>
+            <button class="control-button control-button-small" type="button" data-instance-index="${instanceIndex}" data-instance-action="next">Next</button>
+            <button class="control-button control-button-small" type="button" data-instance-index="${instanceIndex}" data-instance-action="random">Random</button>
+            <button class="control-button control-button-small" type="button" data-instance-index="${instanceIndex}" data-instance-action="favorite">${isFavorite ? "♥ Favorite" : "♡ Favorite"}</button>
+            ${removeButton}
+          </div>
+          <div class="config-row">
+            <label for="instance-${instanceIndex}-mode">Drawing</label>
+            <select id="instance-${instanceIndex}-mode" data-instance-index="${instanceIndex}" data-instance-mode-index="1">
+              ${modes.map((entry, index) => `<option value="${index}" ${index === instance.modeIndex ? "selected" : ""}>${currentFavorites.has(entry.drawing) ? "♥ " : ""}${entry.drawing}. ${entry.label}</option>`).join("")}
+            </select>
+          </div>
+          ${renderSection(`global-${instance.id}`, "General", buildInstanceGeneralControls(instanceIndex))}
+          ${renderSection(`color-${instance.id}`, "Appearance", buildInstanceColorControls(instanceIndex))}
+          ${renderSection(`current-${instance.id}`, "Advanced", buildPresetControls(instanceIndex, instance.presetByDrawing[mode.drawing], mode.drawing))}
         </div>
-      </div>
-      <div class="config-row">
-        <label for="instance-${instanceIndex}-mode">Drawing</label>
-        <select id="instance-${instanceIndex}-mode" data-instance-index="${instanceIndex}" data-instance-mode-index="1">
-          ${modes.map((entry, index) => `<option value="${index}" ${index === instance.modeIndex ? "selected" : ""}>${currentFavorites.has(entry.drawing) ? "♥ " : ""}${entry.drawing}. ${entry.label}</option>`).join("")}
-        </select>
-      </div>
-      <div class="config-row">
-        <label for="instance-${instanceIndex}-layout">Layout</label>
-        <select id="instance-${instanceIndex}-layout" data-instance-index="${instanceIndex}" data-instance-layout="1">
-          <option value="overlay" ${instance.layout === "overlay" ? "selected" : ""}>Overlay</option>
-          <option value="left" ${instance.layout === "left" ? "selected" : ""}>Left</option>
-          <option value="right" ${instance.layout === "right" ? "selected" : ""}>Right</option>
-        </select>
-      </div>
-      ${renderSection(`global-${instance.id}`, "General", buildInstanceGeneralControls(instanceIndex))}
-      ${renderSection(`color-${instance.id}`, "Color", buildInstanceColorControls(instanceIndex))}
-      ${renderSection(`current-${instance.id}`, "Advanced", buildPresetControls(instanceIndex, instance.presetByDrawing[mode.drawing], mode.drawing))}
+      </details>
     </section>
   `;
 }
@@ -2102,12 +2543,59 @@ function bindSectionToggles() {
   });
 }
 
+function getSuggestedDrawingColor() {
+  let used = new Set(drawingInstances.map((instance) => (instance.config.drawColor || "").toLowerCase()));
+  let pool = getThemeDrawingColorPool();
+  for (let colorValue of pool) {
+    if (!used.has(colorValue.toLowerCase())) return colorValue;
+  }
+  let offset = max(0, drawingInstances.length - pool.length);
+  return rotateHexHue(themeConfig.strokeColor, 180 + offset * 36);
+}
+
+function getThemeDrawingColorPool() {
+  let paletteEntry = PALETTES_UI[themeConfig.palette] || {};
+  let candidates = [
+    themeConfig.strokeColor,
+    themeConfig.accentColor,
+    paletteEntry.stroke,
+    paletteEntry.accent,
+    rotateHexHue(themeConfig.strokeColor, 60),
+    rotateHexHue(themeConfig.accentColor, 60),
+    mixHex(themeConfig.strokeColor, themeConfig.accentColor, 0.25),
+    mixHex(themeConfig.strokeColor, themeConfig.accentColor, 0.5),
+    mixHex(themeConfig.strokeColor, themeConfig.accentColor, 0.75),
+    rotateHexHue(themeConfig.strokeColor, 180),
+    rotateHexHue(themeConfig.accentColor, 180),
+    rotateHexHue(themeConfig.strokeColor, 120),
+    rotateHexHue(themeConfig.accentColor, 120),
+  ].filter(Boolean);
+
+  let unique = [];
+  let seen = new Set();
+  for (let candidate of candidates) {
+    let normalized = candidate.toLowerCase();
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      unique.push(candidate);
+    }
+  }
+  return unique;
+}
+
+function getMasterAudioSourceLabel(mode) {
+  if (mode === "multiple") return "Multiple";
+  if (mode === "bass") return "Bass";
+  if (mode === "mid") return "Mid";
+  if (mode === "treble") return "Treble";
+  return "Full Range";
+}
+
 function buildInstanceGeneralControls(instanceIndex) {
   let instance = drawingInstances[instanceIndex];
   setInstanceContext(instance);
   return [
     makeInstanceSliderControl(instanceIndex, "size", "Scale", globalConfig.size, 0.05, 3, 0.01, "percent"),
-    makeInstanceSliderControl(instanceIndex, "opacity", "Opacity", globalConfig.opacity, 0, 1, 0.01),
     makeInstanceSliderControl(instanceIndex, "speed", "Animation Rate", globalConfig.speed, 0.2, 2.5, 0.01),
     makeInstanceSliderControl(instanceIndex, "placeX", "Placement X", globalConfig.placeX, -1, 1, 0.01),
     makeInstanceSliderControl(instanceIndex, "placeY", "Placement Y", globalConfig.placeY, -1, 1, 0.01),
@@ -2121,16 +2609,25 @@ function buildInstanceGeneralControls(instanceIndex) {
         { value: "bass", label: "Bass" },
         { value: "mid", label: "Mid" },
         { value: "treble", label: "Treble" },
+        { value: "custom", label: "Custom" },
         { value: "multiple", label: "Multiple" },
       ]
     ),
+    ...(globalAudioRouting.mode === "custom"
+      ? [
+          makeInstanceSliderControl(instanceIndex, "customLowHz", "Lower Bound Hz", globalAudioRouting.customLowHz, 20, 12000, 10, "", "routing"),
+          makeInstanceSliderControl(instanceIndex, "customHighHz", "Upper Bound Hz", globalAudioRouting.customHighHz, 100, 20000, 10, "", "routing"),
+        ]
+      : []),
     ...(globalAudioRouting.mode === "multiple"
       ? [
           makeInstanceAudioRouteControls(instanceIndex, "global", "size", "Size Audio", globalAudioRouting.size),
           makeInstanceAudioRouteControls(instanceIndex, "global", "speed", "Speed Audio", globalAudioRouting.speed),
           makeInstanceAudioRouteControls(instanceIndex, "global", "detail", "Detail Audio", globalAudioRouting.detail),
         ]
-      : []),
+      : [
+          makeInstanceSliderControl(instanceIndex, "masterAmount", "Audio Sensitivity", globalAudioRouting.masterAmount, 0, 10, 0.01, "", "routing"),
+        ]),
   ];
 }
 
@@ -2138,6 +2635,8 @@ function buildInstanceColorControls(instanceIndex) {
   let instance = drawingInstances[instanceIndex];
   setInstanceContext(instance);
   return [
+    makeInstanceSliderControl(instanceIndex, "opacity", "Opacity", globalConfig.opacity, 0, 1, 0.01),
+    makeInstanceSliderControl(instanceIndex, "lineWeight", "Line Thickness", globalConfig.lineWeight, 0.2, 4, 0.01),
     makeInstanceColorControl(instanceIndex, "drawColor", "Drawing", globalConfig.drawColor),
     makeInstanceColorControl(instanceIndex, "audioAccentColor", "Audio Accent", globalConfig.audioAccentColor),
     ...(globalAudioRouting.mode !== "multiple"
@@ -2173,9 +2672,18 @@ function buildInstanceColorControls(instanceIndex) {
 function buildPresetControls(instanceIndex, preset, drawing) {
   let instance = drawingInstances[instanceIndex];
   setInstanceContext(instance);
+  let mode = modes[instance.modeIndex];
+  let keyOrder = getPresetKeyOrder(mode ? mode.family : "", preset);
   return Object.keys(preset)
     .filter((key) => typeof preset[key] === "number")
-    .sort()
+    .sort((a, b) => {
+      let rankA = keyOrder.indexOf(a);
+      let rankB = keyOrder.indexOf(b);
+      if (rankA === -1 && rankB === -1) return a.localeCompare(b);
+      if (rankA === -1) return 1;
+      if (rankB === -1) return -1;
+      return rankA - rankB;
+    })
     .map((key) => {
       let range = inferRange(key, preset[key]);
       let route = getPresetRoute(drawing, key);
@@ -2185,6 +2693,13 @@ function buildPresetControls(instanceIndex, preset, drawing) {
       }
       return controls;
     });
+}
+
+function getPresetKeyOrder(family, preset) {
+  if (family === "surfaces") {
+    return ["YB", "YC", "YA", "YD", "XB", "XC", "XA", "XD", "N", "M", "E2", "E1", "zMode"];
+  }
+  return Object.keys(preset).sort();
 }
 
 function inferRange(key, value) {
@@ -2218,13 +2733,16 @@ function makeSliderControl(key, label, value, min, max, step, format = "", scope
   `;
 }
 
-function makeInstanceSliderControl(instanceIndex, key, label, value, min, max, step, format = "") {
+function makeInstanceSliderControl(instanceIndex, key, label, value, min, max, step, format = "", scope = "config") {
   let valueId = `value-instance-${instanceIndex}-global-${key}`;
+  let dataAttr = scope === "routing"
+    ? `data-instance-routing-key="${key}"`
+    : `data-instance-global-key="${key}"`;
   return `
     <div class="config-row">
       <label for="instance-${instanceIndex}-global-${key}">${label}</label>
       <span id="${valueId}" class="config-value">${formatValue(key, value, format)}</span>
-      <input id="instance-${instanceIndex}-global-${key}" data-instance-index="${instanceIndex}" data-instance-global-key="${key}" data-value-id="${valueId}" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
+      <input id="instance-${instanceIndex}-global-${key}" data-instance-index="${instanceIndex}" ${dataAttr} data-value-id="${valueId}" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
     </div>
   `;
 }
@@ -2332,6 +2850,89 @@ function rgbaFromHex(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${constrain(alpha, 0, 1).toFixed(2)})`;
 }
 
+function hexToRgb(hex) {
+  let clean = hex.replace("#", "");
+  return {
+    r: parseInt(clean.slice(0, 2), 16),
+    g: parseInt(clean.slice(2, 4), 16),
+    b: parseInt(clean.slice(4, 6), 16),
+  };
+}
+
+function rgbToHex(r, g, b) {
+  return (
+    "#" +
+    [r, g, b]
+      .map((part) => constrain(round(part), 0, 255).toString(16).padStart(2, "0"))
+      .join("")
+  );
+}
+
+function rgbToHsl(r, g, b) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  let maxValue = max(r, g, b);
+  let minValue = min(r, g, b);
+  let h = 0;
+  let s = 0;
+  let l = (maxValue + minValue) / 2;
+  let delta = maxValue - minValue;
+
+  if (delta !== 0) {
+    s = l > 0.5 ? delta / (2 - maxValue - minValue) : delta / (maxValue + minValue);
+    switch (maxValue) {
+      case r: h = (g - b) / delta + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / delta + 2; break;
+      default: h = (r - g) / delta + 4; break;
+    }
+    h /= 6;
+  }
+
+  return { h: h * 360, s: s, l: l };
+}
+
+function hueToRgb(p, q, t) {
+  if (t < 0) t += 1;
+  if (t > 1) t -= 1;
+  if (t < 1 / 6) return p + (q - p) * 6 * t;
+  if (t < 1 / 2) return q;
+  if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+  return p;
+}
+
+function hslToRgb(h, s, l) {
+  h = ((h % 360) + 360) % 360 / 360;
+  let r, g, b;
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    let p = 2 * l - q;
+    r = hueToRgb(p, q, h + 1 / 3);
+    g = hueToRgb(p, q, h);
+    b = hueToRgb(p, q, h - 1 / 3);
+  }
+  return { r: r * 255, g: g * 255, b: b * 255 };
+}
+
+function rotateHexHue(hex, degrees) {
+  let rgb = hexToRgb(hex);
+  let hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  let rotated = hslToRgb(hsl.h + degrees, hsl.s, hsl.l);
+  return rgbToHex(rotated.r, rotated.g, rotated.b);
+}
+
+function mixHex(a, b, amount) {
+  let colorA = hexToRgb(a);
+  let colorB = hexToRgb(b);
+  return rgbToHex(
+    lerp(colorA.r, colorB.r, amount),
+    lerp(colorA.g, colorB.g, amount),
+    lerp(colorA.b, colorB.b, amount)
+  );
+}
+
 async function startAudio() {
   if (micReady || startingAudio) return;
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -2402,6 +3003,39 @@ function averageBand(lowHz, highHz) {
     sum += freqData[i];
   }
   return sum / ((highIndex - lowIndex) * 255);
+}
+
+function averageWeightedBand(lowHz, highHz, lowWeight = 1, highWeight = 1) {
+  let nyquist = audioContext.sampleRate * 0.5;
+  let lowIndex = floor((lowHz / nyquist) * freqData.length);
+  let highIndex = ceil((highHz / nyquist) * freqData.length);
+  lowIndex = constrain(lowIndex, 0, freqData.length - 1);
+  highIndex = constrain(highIndex, lowIndex + 1, freqData.length);
+
+  let weightedSum = 0;
+  let weightSum = 0;
+  let span = max(1, highIndex - lowIndex - 1);
+  for (let i = lowIndex; i < highIndex; i++) {
+    let ratio = (i - lowIndex) / span;
+    let weight = lerp(lowWeight, highWeight, ratio * ratio);
+    weightedSum += freqData[i] * weight;
+    weightSum += weight;
+  }
+  return weightedSum / max(1, weightSum) / 255;
+}
+
+function peakBand(lowHz, highHz) {
+  let nyquist = audioContext.sampleRate * 0.5;
+  let lowIndex = floor((lowHz / nyquist) * freqData.length);
+  let highIndex = ceil((highHz / nyquist) * freqData.length);
+  lowIndex = constrain(lowIndex, 0, freqData.length - 1);
+  highIndex = constrain(highIndex, lowIndex + 1, freqData.length);
+
+  let peak = 0;
+  for (let i = lowIndex; i < highIndex; i++) {
+    if (freqData[i] > peak) peak = freqData[i];
+  }
+  return peak / 255;
 }
 
 function waveformLevel() {
