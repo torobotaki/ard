@@ -2182,7 +2182,7 @@ function exportSceneConfig() {
   let url = URL.createObjectURL(blob);
   let link = document.createElement("a");
   link.href = url;
-  link.download = `dessinsgeo-scene-${Date.now()}.json`;
+  link.download = `ard-scene-${Date.now()}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
