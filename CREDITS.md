@@ -30,3 +30,7 @@ Because `A·R·D*` is a derivative/adaptation built on top of that codebase, thi
 Use the following project name when presenting the current derivative project:
 
 `A·R·D* / Audio-Reactive Dessins Geometriques et Artistiques`
+
+## Process note
+
+Parts of the audio-reactive adaptation, UI, and documentation were developed with the assistance of AI tools.
