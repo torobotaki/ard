@@ -16,8 +16,7 @@ This file tracks which original Delahaye sketch families fit the current audio-r
 | 1-12 | Polygones / Etoiles reguliers | Yes | 3 | Integrated into the master as simple animated polygon and star modes. |
 | 14-19 | Composition 1 | Yes | 1 | Integrated into the master sketch. |
 | 20-25 | Composition 2 | Yes | 1 | Integrated into the master sketch. |
-| 26-32 | Joligones | Yes | 3 | Integrated into the master with fitted centering. |
-| 33 | Joligones | No | 3 | Still pending. |
+| 26-33 | Joligones | Yes | 3 | Integrated into the master with fitted centering. |
 | 34-43 | Dessins a partir de donnees / Cheval | No | 4 | Data-driven source material; not a natural fit for the current live modulation UX. |
 | 44-45 | Dessins a partir de donnees / Lion | No | 4 | Same issue as other data-driven drawings. |
 | 46-47 | Dessins a partir de donnees / Oiseaux-Poissons | No | 4 | Data-driven family, better treated separately. |
@@ -43,7 +42,7 @@ This file tracks which original Delahaye sketch families fit the current audio-r
 | 155-159 | Fractales simples deformees | No | 4 | Same as above. |
 | 164-176 | Quadrillages elastiques | Yes | 1 | Integrated into the master. |
 | 175-177 | Fractales generales | No | 4 | Fractal family; separate UX likely needed. |
-| 178-200 | Surfaces | No | 3 | Possible later, but heavy and more complex than the current supported families. |
+| 178-200 | Surfaces | Yes | 3 | Integrated as an experimental shared renderer. Heavier than the other supported families and likely to need more tuning. |
 | 180-182 | Fractales generales | No | 4 | Fractal family; separate UX likely needed. |
 | 201-203, 205 | D3Data | No | 4 | Data-driven 3D family; poor fit for the current master UI. |
 | 206 | D3Data | No | 4 | Same as above. |

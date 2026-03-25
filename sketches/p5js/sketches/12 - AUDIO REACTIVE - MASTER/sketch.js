@@ -35,6 +35,7 @@ let chromeVisible = true;
 let configPanelVisible = true;
 let themePanelVisible = false;
 let helpPanelVisible = false;
+let fullscreenActive = false;
 let hideUiAt = 0;
 let sectionOpenState = { global: true, color: false, current: false, theme: true };
 let currentFavorites = new Set();
@@ -73,6 +74,7 @@ const PALETTES_UI = {
 
 let globalConfig = {
   size: 1,
+  opacity: 1,
   speed: 1,
   micSensitivity: 1.2,
   placeX: 0,
@@ -115,6 +117,7 @@ const CATEGORY_WEIGHTS = {
   elastic: 5,
   d3structures: 7,
   biparti: 4,
+  surfaces: 2,
 };
 
 const JOLIGONES_PRESETS = {
@@ -125,6 +128,7 @@ const JOLIGONES_PRESETS = {
   30: { K: 200, AN: (4 * PI_VALUE) / 5 + 0.02, RA: 0.99, RR: 0.8, startX: 0.12, startY: 0.12 },
   31: { K: 100, AN: (6 * PI_VALUE) / 7, RA: 0.98, RR: 0.8, startX: 0.1, startY: 0.1 },
   32: { K: 300, AN: (2 * PI_VALUE) / 5 + 0.01, RA: 0.993, RR: 0.6, startX: 0.2, startY: 0.2 },
+  33: { K: 400, AN: (19 * PI_VALUE) / 60, RA: 0.996, RR: 0.4, startX: 0.3, startY: 0.18, yScale: 1.7 },
 };
 
 const COMPOSITION1_PRESETS = {
@@ -161,6 +165,32 @@ const BIPARTI_PRESETS = {
   102: { N: 15, XA: 0.5, YA: 1 / 15, XB: 0.5, YB: 1.2, XC: 0, YC: 0, XD: 1, YD: 0 },
   103: { N: 19, XA: 0, YA: 0, XB: 1, YB: 1.4, XC: 0, YC: 1.4, XD: 1, YD: 0 },
   104: { N: 16, XA: 0, YA: 0, XB: 0.5, YB: 1, XC: 1, YC: 0, XD: 0.5, YD: 1 },
+};
+
+const SURFACE_PRESETS = {
+  178: { N: 60, M: 160, E1: 1, E2: 0, zMode: 178, XA: 0.5, YA: 1 / 16, XB: 7 / 8, YB: 1 / 4, XC: 0.5, YC: 5 / 8, XD: 1 / 8, YD: 7 / 16 },
+  179: { N: 60, M: 160, E1: 1, E2: 1, zMode: 178, XA: 0.5, YA: 1 / 16, XB: 7 / 8, YB: 1 / 4, XC: 0.5, YC: 5 / 8, XD: 1 / 8, YD: 7 / 16 },
+  180: { N: 60, M: 160, E1: 2, E2: 0, zMode: 178, XA: 0.5, YA: 1 / 16, XB: 7 / 8, YB: 1 / 4, XC: 0.5, YC: 5 / 8, XD: 1 / 8, YD: 7 / 16 },
+  181: { N: 60, M: 160, E1: 2, E2: 1, zMode: 178, XA: 0.5, YA: 1 / 16, XB: 7 / 8, YB: 1 / 4, XC: 0.5, YC: 5 / 8, XD: 1 / 8, YD: 7 / 16 },
+  182: { N: 60, M: 240, E1: 1, E2: 0, zMode: 182, XA: 0, YA: 0, XB: 3 / 4, YB: 0, XC: 1, YC: 5 / 4, XD: 1 / 4, YD: 5 / 4 },
+  183: { N: 60, M: 240, E1: 2, E2: 0, zMode: 183, XA: 0.5, YA: 0, XB: 1, YB: 5 / 12, XC: 0.5, YC: 5 / 6, XD: 0, YD: 5 / 12 },
+  184: { N: 30, M: 240, E1: 2, E2: 0, zMode: 184, XA: 0.5, YA: 0, XB: 1, YB: 5 / 12, XC: 0.5, YC: 5 / 6, XD: 0, YD: 5 / 12 },
+  185: { N: 40, M: 240, E1: 2, E2: 0, zMode: 185, XA: 0.5, YA: 0, XB: 1, YB: 0.5, XC: 0.5, YC: 1, XD: 0, YD: 0.5 },
+  186: { N: 30, M: 160, E1: 2, E2: 0, zMode: 186, XA: 0.5, YA: 0, XB: 1, YB: 1 / 3, XC: 0.5, YC: 2 / 3, XD: 0, YD: 1 / 3 },
+  187: { N: 50, M: 240, E1: 2, E2: 0, zMode: 187, XA: 0.5, YA: 0, XB: 1, YB: 1 / 3, XC: 0.5, YC: 2 / 3, XD: 0, YD: 1 / 3 },
+  188: { N: 40, M: 240, E1: 2, E2: 0, zMode: 188, XA: 0.5, YA: 0, XB: 1, YB: 0.5, XC: 0.5, YC: 1, XD: 0, YD: 0.5 },
+  189: { N: 80, M: 480, E1: 1, E2: 0, zMode: 189, XA: 0.5, YA: 0, XB: 1, YB: 1 / 3, XC: 0.5, YC: 2 / 3, XD: 0, YD: 1 / 3 },
+  190: { N: 80, M: 240, E1: 1, E2: 0, zMode: 190, XA: 0.5, YA: 0, XB: 1, YB: 1 / 3, XC: 0.5, YC: 2 / 3, XD: 0, YD: 1 / 3 },
+  191: { N: 40, M: 240, E1: 2, E2: 0, zMode: 191, XA: 0.5, YA: 0, XB: 1, YB: 1 / 3, XC: 0.5, YC: 2 / 3, XD: 0, YD: 1 / 3 },
+  192: { N: 40, M: 240, E1: 2, E2: 0, zMode: 192, XA: 1 / 3, YA: 0, XB: 1, YB: 1 / 4, XC: 2 / 3, YC: 3 / 4, XD: 0, YD: 1 / 2 },
+  193: { N: 40, M: 240, E1: 2, E2: 0, zMode: 193, XA: 5 / 12, YA: 0, XB: 1, YB: 5 / 12, XC: 7 / 12, YC: 5 / 6, XD: 0, YD: 5 / 12 },
+  194: { N: 60, M: 240, E1: 2, E2: 0, zMode: 194, XA: 3 / 8, YA: 0, XB: 1, YB: 3 / 8, XC: 5 / 8, YC: 3 / 4, XD: 0, YD: 3 / 8 },
+  195: { N: 40, M: 240, E1: 2, E2: 0, zMode: 195, XA: 5 / 12, YA: 0, XB: 1, YB: 1, XC: 7 / 12, YC: 1 / 2, XD: 0, YD: 1 / 4 },
+  196: { N: 80, M: 240, E1: 2, E2: 0, zMode: 196, XA: 1 / 4, YA: 0, XB: 1, YB: 0, XC: 3 / 4, YC: 3 / 4, XD: 0, YD: 3 / 4 },
+  197: { N: 80, M: 480, E1: 1, E2: 0, zMode: 197, XA: 1 / 3, YA: 0, XB: 1, YB: 1 / 4, XC: 2 / 3, YC: 3 / 4, XD: 0, YD: 1 / 2 },
+  198: { N: 64, M: 480, E1: 2, E2: 0, zMode: 198, XA: 1 / 3, YA: 0, XB: 1, YB: 4 / 15, XC: 2 / 3, YC: 4 / 5, XD: 0, YD: 8 / 15 },
+  199: { N: 64, M: 480, E1: 1, E2: 0, zMode: 199, XA: 1 / 3, YA: 0, XB: 1, YB: 4 / 15, XC: 2 / 3, YC: 4 / 5, XD: 0, YD: 8 / 15 },
+  200: { N: 64, M: 480, E1: 2, E2: 0, zMode: 200, XA: 2 / 3, YA: 0, XB: 1, YB: 8 / 15, XC: 1 / 3, YC: 8 / 15, XD: 0, YD: 0 },
 };
 
 const ORBITAL_PRESETS = {
@@ -303,6 +333,11 @@ function setup() {
   captureInitialState();
   loadFavorites();
   setupUi();
+  fullscreenActive = !!fullscreen();
+  document.addEventListener("fullscreenchange", () => {
+    fullscreenActive = !!fullscreen();
+    applyChromeVisibility();
+  });
   window.addEventListener("keydown", handleWindowKeyDown, { passive: false });
 }
 
@@ -327,6 +362,7 @@ function buildModes() {
   addPresetModes("composition", "COMPOSITION 2", COMPOSITION2_PRESETS, renderComposition2);
   addPresetModes("joligone", "JOLIGONES", JOLIGONES_PRESETS, renderJoligone);
   addPresetModes("biparti", "BIPARTI COMPLET", BIPARTI_PRESETS, renderBiparti);
+  addPresetModes("surfaces", "SURFACES", SURFACE_PRESETS, renderSurface);
   addPresetModes("orbital", "COURBES ORBITALES", ORBITAL_PRESETS, renderOrbital);
   addPresetModes("tournante", "COURBES TOURNANTES", TOURNANTE_PRESETS, renderTournante);
   addPresetModes("orbital", "COURBES SPIRALES", SPIRAL_PRESETS, renderSpiral);
@@ -470,7 +506,9 @@ function syncModePicker() {
 function renderMode(mode, metrics) {
   push();
   translate(width * globalConfig.placeX * 0.4, height * globalConfig.placeY * 0.4);
-  stroke(getReactiveStrokeColor(metrics));
+  let strokeColor = getReactiveStrokeColor(metrics);
+  strokeColor.setAlpha(constrain(globalConfig.opacity, 0, 1) * 255);
+  stroke(strokeColor);
   noFill();
   mode.renderer(mode.preset, metrics, mode.drawing);
   pop();
@@ -545,9 +583,10 @@ function renderJoligone(preset, metrics, drawing) {
   let k = max(20, floor(getPresetValue(drawing, "K", preset.K, metrics)));
   let angleStep = getPresetValue(drawing, "AN", preset.AN, metrics);
   let decay = constrain(getPresetValue(drawing, "RA", preset.RA, metrics), 0.85, 0.9999);
-  let radius = min(width, height) * getPresetValue(drawing, "RR", preset.RR, metrics) * globalConfig.size;
+  let radius = min(width, height) * getPresetValue(drawing, "RR", preset.RR, metrics) * globalConfig.size * (1 + getGlobalAudioAmount("size", metrics));
   let x = width * getPresetValue(drawing, "startX", preset.startX, metrics);
   let y = height * getPresetValue(drawing, "startY", preset.startY, metrics);
+  let yScale = getPresetValue(drawing, "yScale", preset.yScale || 1, metrics);
   let angle = metrics.time * getSpeedMod(metrics) * 0.08;
   let points = [];
   let minX = Infinity;
@@ -557,7 +596,7 @@ function renderJoligone(preset, metrics, drawing) {
 
   for (let i = 0; i < k; i++) {
     x += radius * cos(angle);
-    y += radius * sin(angle);
+    y += yScale * radius * sin(angle);
     points.push({ x: x, y: y });
     minX = min(minX, x);
     minY = min(minY, y);
@@ -567,7 +606,217 @@ function renderJoligone(preset, metrics, drawing) {
     radius *= decay;
   }
 
-  drawFittedPolyline(points, minX, minY, maxX, maxY);
+  let fitScale = globalConfig.size * (1 + getGlobalAudioAmount("size", metrics));
+  drawFittedPolyline(points, minX, minY, maxX, maxY, fitScale);
+}
+
+function renderSurface(preset, metrics, drawing) {
+  let n = max(8, floor(getPresetValue(drawing, "N", preset.N, metrics)));
+  let m = max(40, floor(getPresetValue(drawing, "M", preset.M, metrics)));
+  let e1 = floor(getPresetValue(drawing, "E1", preset.E1, metrics));
+  let e2 = floor(getPresetValue(drawing, "E2", preset.E2, metrics));
+  let scaleMod = globalConfig.size * (1 + getGlobalAudioAmount("size", metrics) * 0.35);
+  let np = 480;
+  let pa = np / m;
+  let segments = [];
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  let xa0 = getPresetValue(drawing, "XA", preset.XA, metrics);
+  let ya0 = getPresetValue(drawing, "YA", preset.YA, metrics);
+  let xb0 = getPresetValue(drawing, "XB", preset.XB, metrics);
+  let yb0 = getPresetValue(drawing, "YB", preset.YB, metrics);
+  let xc0 = getPresetValue(drawing, "XC", preset.XC, metrics);
+  let yc0 = getPresetValue(drawing, "YC", preset.YC, metrics);
+  let xd0 = getPresetValue(drawing, "XD", preset.XD, metrics);
+  let yd0 = getPresetValue(drawing, "YD", preset.YD, metrics);
+
+  for (let pass = 0; pass < (e1 === 1 ? 1 : 2); pass++) {
+    let e3 = pass === 1 ? 1 : 0;
+    let ma = Array(m + 1).fill(-5 * np);
+    let mi = Array(m + 1).fill(5 * np);
+    let xa = xa0, ya = ya0, xb = xb0, yb = yb0, xc = xc0, yc = yc0, xd = xd0, yd = yd0;
+    if (pass === 1) {
+      let uu = xd;
+      xd = xb;
+      xb = uu;
+      uu = yd;
+      yd = yb;
+      yb = uu;
+    }
+
+    for (let i = 0; i <= n; i++) {
+      let xp = lerp(xa, xd, i / n) * np;
+      let yp = lerp(ya, yd, i / n) * np;
+      let xq = lerp(xb, xc, i / n) * np;
+      let yq = lerp(yb, yc, i / n) * np;
+      let i1 = floor(xp / pa);
+      let i2 = floor(xq / pa);
+      let g = i2 >= i1 ? 1 : -1;
+      let prevPoint = null;
+      let prevVisible = false;
+      let baseX = e3 === 1 ? 0 : i / n;
+      let baseY = e3 === 1 ? i / n : 0;
+      let denom = i2 - i1 === 0 ? 1 : i2 - i1;
+
+      for (let j = i1; g === 1 ? j <= i2 : j >= i2; j += g) {
+        let x = baseX;
+        let y = baseY;
+        if (e3 === 1) x = (j - i1) / denom;
+        else y = (j - i1) / denom;
+        let z = computeSurfaceZ(preset.zMode, x, y, np);
+        let xf = j * pa;
+        let yf = (((j - i1) * yq + (i2 - j) * yp) / denom) + z;
+        let current = { x: xf, y: yf };
+        let visible = true;
+
+        if (e2 !== 1) {
+          visible = !(yf > mi[j] && yf < ma[j]);
+          if (visible) {
+            if (yf > ma[j]) ma[j] = yf;
+            if (yf < mi[j]) mi[j] = yf;
+          }
+        }
+
+        if (prevPoint && visible && prevVisible) {
+          segments.push([prevPoint, current]);
+          minX = min(minX, prevPoint.x, current.x);
+          minY = min(minY, prevPoint.y, current.y);
+          maxX = max(maxX, prevPoint.x, current.x);
+          maxY = max(maxY, prevPoint.y, current.y);
+        }
+
+        prevPoint = current;
+        prevVisible = visible;
+      }
+    }
+  }
+
+  if (segments.length === 0) return;
+  drawFittedSegments(segments, minX, minY, maxX, maxY, scaleMod);
+}
+
+function computeSurfaceZ(mode, x, y, np) {
+  if (mode === 182) return (np / 5) * sin(3 * PI_VALUE * y) * sin(4 * PI_VALUE * x);
+  if (mode === 183) return (np / 4) * sin(2 * PI_VALUE * y) * sin(3 * PI_VALUE * x);
+  if (mode === 184) {
+    let di = 7 * sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5));
+    return cos(di) * np / 5;
+  }
+  if (mode === 185) {
+    let x7 = 2 * x - 1, y7 = 2 * y - 1;
+    if (x7 * y7 === 0) return 0;
+    return (3 * np / 4) * x7 * y7 * (x7 * y7 - y7 * y7) / (x7 * x7 + y7 * y7);
+  }
+  if (mode === 186) {
+    let x7 = (3 * x - floor(3 * x)) * 2 - 1;
+    let y7 = (2 * y - floor(2 * y)) * 2 - 1;
+    let di = x7 * x7 + y7 * y7;
+    return (np / 4) * (1 - pow(di, 0.2));
+  }
+  if (mode === 187) {
+    let x7 = (5 * x - floor(5 * x)) * 2 - 1;
+    let y7 = (5 * y - floor(5 * y)) * 2 - 1;
+    let di = x7 * x7 + y7 * y7;
+    return (np / 4) * (1 - di) * (0.6 - abs(y - 0.5));
+  }
+  if (mode === 188) {
+    let x7 = 2 * x - 1, y7 = 2 * y - 1;
+    if (x7 * y7 === 0) return 0;
+    return (3 * np / 4) * x7 * y7 * (x7 * x7 - y7 * y7) / (x7 * x7 + y7 * y7);
+  }
+  if (mode === 189) {
+    let x7 = 3 * y - 1.5, y7 = 3 * x - 1.5;
+    if (x7 * y7 === 0) return 0;
+    return (np / 4) * y7 * x7 * x7 / (y7 * y7 + pow(x7, 4));
+  }
+  if (mode === 190) {
+    let di = 16 * ((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5));
+    return (np * 5 / 12) * cos(4 * di) * exp(-di);
+  }
+  if (mode === 191) {
+    let x7 = 2 * abs(x - 0.5), y7 = 2 * abs(y - 0.5), m7 = max(x7, y7);
+    let m8 = floor(5 * m7), m9 = 5 * m7 - m8;
+    let z = m9 > 0.8 ? (m9 - 0.8) * 5 : 0;
+    return (-np * 5 / 48) * (z + m8);
+  }
+  if (mode === 192) {
+    let x7 = 2 * abs(x - 0.5), y7 = 2 * abs(y - 0.5), m7 = x7 + y7;
+    let m8 = floor(4 * m7), m9 = 4 * m7 - m8;
+    let z = m9 > 0.8 ? (m9 - 0.8) * 5 : 0;
+    return (-np * 5 / 48) * (z + m8);
+  }
+  if (mode === 193) {
+    let aa = min(1.5 - 6 * abs(x - 0.5), 1.5 - 6 * abs(y - 0.5));
+    let cc = 0.5 - 2 * abs(x - 0.5), dd = 0.25 - abs(y - 0.5);
+    aa = max(aa, cc, dd);
+    return (np * 5 / 8) * aa;
+  }
+  if (mode === 194) {
+    let x7 = 2 * x - floor(2 * x), y7 = 3 * y - floor(3 * y);
+    let aa = min(1.5 - 6 * abs(x7 - 0.5), 1.5 - 6 * abs(y7 - 0.5));
+    let cc = 0.5 - 2 * abs(x7 - 0.5), dd = 0.25 - abs(y7 - 0.5);
+    aa = max(aa, cc, dd);
+    return (np * 13 / 48) * aa;
+  }
+  if (mode === 195) {
+    let r2 = sqrt(2);
+    let aa = 0.5 - abs(x - 0.5), bb = 0.5 - abs(y - 0.5), cc = 0.5 - abs(x + y - 1), dd = 0.5 - abs(x - y) / r2;
+    return (np * 5 / 2) * min(aa, bb, cc, dd);
+  }
+  if (mode === 196) {
+    let x7 = (7 * x - floor(7 * x)) * 2 - 1;
+    let y7 = (7 * y - floor(7 * y)) * 2 - 1;
+    let di = x7 * x7 + y7 * y7;
+    return np * ((1 / 16) * (1 - di) + (5 / 4) * (1 - abs(x - 0.5)) * (1 - abs(y - 0.5)));
+  }
+  if (mode === 197) {
+    let xh = x + 0.4755 + y, yh = y + 0.23771 - x;
+    let x6 = 2 * abs(3 * xh - floor(3 * xh) - 0.5), y6 = 2 * abs(4 * yh - floor(4 * yh) - 0.5), z6 = x6 * y6;
+    let x7 = 2 * abs(5 * xh - floor(5 * xh) - 0.5), y7 = 2 * abs(5 * yh - floor(5 * yh) - 0.5), z7 = x7 * y7;
+    let x8 = 2 * abs(10 * xh - floor(10 * xh) - 0.5), y8 = 2 * abs(13 * yh - floor(13 * yh) - 0.5), z8 = x8 * y8;
+    let z = (5 * z6 + 3 * z7 + 2 * z8) * np / 48;
+    return z * (0.6 - abs(x - 0.5) * (0.6 - abs(y - 0.5)));
+  }
+  if (mode === 198) {
+    let x7 = x, y7 = y, k7 = 0, u7 = 0, v7 = 0;
+    do {
+      k7 += 1;
+      if (k7 > 4) return 0;
+      u7 = floor(2 * x7); x7 = 2 * x7 - u7;
+      v7 = floor(2 * y7); y7 = 2 * y7 - v7;
+    } while (u7 !== v7);
+    let x9 = 2 * x7 - 1, y9 = 2 * y7 - 1;
+    let z = (1 - abs(x9)) * (1 - abs(y9));
+    return (np * 5 / 24) * z * z * z;
+  }
+  if (mode === 199) {
+    let x7 = x, y7 = y, k7 = 0, u7 = 0, v7 = 0;
+    do {
+      k7 += 1;
+      if (k7 > 6) return 0;
+      u7 = floor(2 * x7); x7 = 2 * x7 - u7;
+      v7 = floor(2 * y7); y7 = 2 * y7 - v7;
+    } while (u7 !== v7);
+    let x9 = 2 * x7 - 1, y9 = 2 * y7 - 1;
+    let z = 1 - x9 * x9 - y9 * y9;
+    return z > 0 ? (np * 5 / 16 / pow(k7, 2)) * sqrt(z) : 0;
+  }
+  if (mode === 200) {
+    let x7 = x, y7 = y, k7 = 0, u7 = 0, v7 = 0;
+    do {
+      k7 += 1;
+      if (k7 > 5) return 0;
+      u7 = floor(2 * x7); x7 = 2 * x7 - u7;
+      v7 = floor(2 * y7); y7 = 2 * y7 - v7;
+    } while (u7 === 0 || v7 === 0);
+    let z1 = 0.5 - abs(x7 - 0.5), z = 0.5 - abs(y7 - 0.5);
+    if (z1 < z) z = z1;
+    return np * 2.5 / pow(k7, 2) * z;
+  }
+  return (np / 3) * sin(PI_VALUE * y) * sin(PI_VALUE * x);
 }
 
 function renderComposition2(preset, metrics, drawing) {
@@ -1040,10 +1289,11 @@ function d3StructureDRadius(mode, mx, m, i, n) {
   return sqrt(max(0, 1 - mx * mx));
 }
 
-function drawFittedSegments(segments, minX, minY, maxX, maxY) {
+function drawFittedSegments(segments, minX, minY, maxX, maxY, fitScale = 1) {
+  if (!segments.length) return;
   let spanX = max(1, maxX - minX);
   let spanY = max(1, maxY - minY);
-  let fit = min((width * 0.7) / spanX, (height * 0.7) / spanY);
+  let fit = min((width * 0.7) / spanX, (height * 0.7) / spanY) * fitScale;
   let centerX = (minX + maxX) * 0.5;
   let centerY = (minY + maxY) * 0.5;
   strokeWeight(0.9 + smoothedLevel);
@@ -1057,10 +1307,11 @@ function drawFittedSegments(segments, minX, minY, maxX, maxY) {
   }
 }
 
-function drawFittedPolyline(points, minX, minY, maxX, maxY) {
+function drawFittedPolyline(points, minX, minY, maxX, maxY, fitScale = 1) {
+  if (!points.length) return;
   let spanX = max(1, maxX - minX);
   let spanY = max(1, maxY - minY);
-  let fit = min((width * 0.7) / spanX, (height * 0.7) / spanY);
+  let fit = min((width * 0.7) / spanX, (height * 0.7) / spanY) * fitScale;
   let centerX = (minX + maxX) * 0.5;
   let centerY = (minY + maxY) * 0.5;
   strokeWeight(0.9 + smoothedLevel);
@@ -1293,9 +1544,7 @@ function applyChromeVisibility() {
   setButtonState("show-config", chromeVisible && configPanelVisible);
   setButtonState("show-colors", chromeVisible && themePanelVisible);
   setButtonState("show-help", chromeVisible && helpPanelVisible);
-  setButtonState("toggle-fullscreen", fullscreen());
-  let fullscreenButton = document.getElementById("toggle-fullscreen");
-  if (fullscreenButton) fullscreenButton.textContent = fullscreen() ? "Fullscreen Enabled" : "Fullscreen Disabled";
+  setButtonState("toggle-fullscreen", fullscreenActive);
 }
 
 function setButtonState(id, active) {
@@ -1520,7 +1769,8 @@ function syncDrawingColorsToTheme(force) {
 }
 
 function toggleFullscreen() {
-  fullscreen(!fullscreen());
+  fullscreenActive = !fullscreenActive;
+  fullscreen(fullscreenActive);
   setTimeout(() => applyChromeVisibility(), 50);
 }
 
@@ -1532,6 +1782,7 @@ function renderConfigPanel() {
   let html = "";
   html += renderSection("global", "General", [
     makeSliderControl("size", "Scale", globalConfig.size, 0.05, 3, 0.01, "percent"),
+    makeSliderControl("opacity", "Opacity", globalConfig.opacity, 0, 1, 0.01),
     makeSliderControl("speed", "Animation Rate", globalConfig.speed, 0.2, 2.5, 0.01),
     makeSliderControl("micSensitivity", "Mic Sensitivity", globalConfig.micSensitivity, 0, 10, 0.01),
     makeSliderControl("placeX", "Placement X", globalConfig.placeX, -1, 1, 0.01),
@@ -1559,6 +1810,21 @@ function renderConfigPanel() {
   html += renderSection("color", "Color", [
     makeColorControl("drawColor", "Drawing", globalConfig.drawColor),
     makeColorControl("audioAccentColor", "Audio Accent", globalConfig.audioAccentColor),
+    ...(globalAudioRouting.mode !== "multiple"
+      ? [
+          makeSelectControl(
+            "colorSource",
+            "Audio Source",
+            globalAudioRouting.color.source,
+            [
+              { value: "level", label: "Full Range" },
+              { value: "bass", label: "Bass" },
+              { value: "mid", label: "Mid" },
+              { value: "treble", label: "Treble" },
+            ]
+          ),
+        ]
+      : []),
     makeSelectControl(
       "colorMode",
       "Color Mode",
@@ -1667,6 +1933,12 @@ function updateGlobalConfigFromInput(el) {
   let value = el.type === "checkbox" ? el.checked : el.type === "range" ? Number(el.value) : el.value;
   if (key === "mode") {
     globalAudioRouting.mode = value;
+    if (value !== "multiple") globalAudioRouting.color.source = value;
+    renderConfigPanel();
+    return;
+  }
+  if (key === "colorSource") {
+    globalAudioRouting.color.source = value;
     renderConfigPanel();
     return;
   }
