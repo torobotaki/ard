@@ -41,9 +41,7 @@ This file tracks which original Delahaye sketch families fit the current audio-r
 | 152-154 | Fractales simples deformees | No | 4 | Same as above. |
 | 153-156 | Fractales generales | No | 4 | Same as above. |
 | 155-159 | Fractales simples deformees | No | 4 | Same as above. |
-| 164-175 | Quadrillages elastiques | No | 1 | Family fits well, but these grouped variants are not yet wired. |
-| 174-175 | Quadrillages elastiques | No | 1 | Same family fit as above; still pending. |
-| 176 | Quadrillages elastiques | Yes | 1 | Favorite. Integrated into the master. |
+| 164-176 | Quadrillages elastiques | Yes | 1 | Integrated into the master. |
 | 175-177 | Fractales generales | No | 4 | Fractal family; separate UX likely needed. |
 | 178-200 | Surfaces | No | 3 | Possible later, but heavy and more complex than the current supported families. |
 | 180-182 | Fractales generales | No | 4 | Fractal family; separate UX likely needed. |
@@ -59,10 +57,7 @@ This file tracks which original Delahaye sketch families fit the current audio-r
 | 219-220 | D3Cube | Yes | 2 | Integrated. |
 | 221-235 | D3Structures | Yes | 1 | Favorites. Integrated into the master. |
 | 236-239 | D3Structures | Yes | 1 | Favorites. Integrated into the master. |
-| 240-241 | D3Structures | No | 1 | Same family fits well; still pending. |
-| 242 | D3Structures | No | 1 | Same family fits well; still pending. |
-| 243-251 | D3Structures | No | 1 | Same family fits well; still pending. |
-| 252 | D3Structures | No | 1 | Same family fits well; still pending. |
+| 240-252 | D3Structures | Yes | 1 | Integrated into the master. |
 
 ## Current strategy
 

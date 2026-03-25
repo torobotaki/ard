@@ -22,6 +22,8 @@ let overlayStatusEl;
 let controlsEl;
 let configPanelEl;
 let configContentEl;
+let themePanelEl;
+let themeContentEl;
 let uiHintEl;
 let pickModeEl;
 let startAudioButtons = [];
@@ -29,8 +31,9 @@ let statusFlash = "";
 let statusFlashUntil = 0;
 let chromeVisible = true;
 let configPanelVisible = true;
+let themePanelVisible = false;
 let hideUiAt = 0;
-let sectionOpenState = { global: true, color: false, current: false };
+let sectionOpenState = { global: true, color: false, current: false, theme: true };
 let currentFavorites = new Set();
 
 const PI_VALUE = Math.PI;
@@ -61,11 +64,16 @@ let globalConfig = {
   micSensitivity: 1.2,
   placeX: 0,
   placeY: 0,
+  drawColor: "#f7eb23",
+  audioAccentColor: "#ffffff",
+  colorMode: "palette_audio",
+};
+
+let themeConfig = {
   palette: "blue",
   bgColor: "#013abb",
   strokeColor: "#f7eb23",
   accentColor: "#ffffff",
-  colorMode: "palette_audio",
 };
 
 let globalAudioRouting = {
@@ -156,7 +164,19 @@ const SPIRAL_PRESETS = {
 };
 
 const ELASTIC_PRESETS = {
-  176: {},
+  164: { gridX: 20, gridY: 20, angleMode: "none", angleAmount: 0, angleWave: 0, distPower: 0.3 },
+  165: { gridX: 20, gridY: 20, angleMode: "none", angleAmount: 0, angleWave: 0, distPower: 3 },
+  166: { gridX: 20, gridY: 20, angleMode: "linear", angleAmount: HALF_PI_VALUE, angleWave: 0, distPower: 1 },
+  167: { gridX: 20, gridY: 20, angleMode: "linear", angleAmount: 3.5, angleWave: 0, distPower: 0.3 },
+  168: { gridX: 20, gridY: 20, angleMode: "linear", angleAmount: TAU_VALUE, angleWave: 0, distPower: 1 },
+  169: { gridX: 20, gridY: 20, angleMode: "linear", angleAmount: PI_VALUE, angleWave: 0, distPower: 3 },
+  170: { gridX: 20, gridY: 20, angleMode: "sin1", angleAmount: HALF_PI_VALUE, angleWave: PI_VALUE, distPower: 0.2 },
+  171: { gridX: 20, gridY: 20, angleMode: "sin2", angleAmount: PI_VALUE / 4, angleWave: TAU_VALUE, distPower: 1 },
+  172: { gridX: 20, gridY: 20, angleMode: "sin2", angleAmount: PI_VALUE / 4, angleWave: TAU_VALUE, distPower: 2 },
+  173: { gridX: 20, gridY: 20, angleMode: "sin2", angleAmount: PI_VALUE / 4, angleWave: TAU_VALUE, distPower: 1 },
+  174: { gridX: 20, gridY: 20, angleMode: "linear", angleAmount: PI_VALUE, angleWave: 0, distPower: 0.3 },
+  175: { gridX: 20, gridY: 20, angleMode: "linear", angleAmount: TAU_VALUE, angleWave: 0, distPower: 1 },
+  176: { gridX: 20, gridY: 40, angleMode: "linear", angleAmount: TAU_VALUE, angleWave: 0, distPower: 1 },
 };
 
 const D3CUBE_PRESETS = {
@@ -204,16 +224,36 @@ const D3STRUCTURES_B_PRESETS = {
   239: { N: 1800, M: 100, R1: 0.6, R2: 0.25, AY: -PI_VALUE / 4, QX: -2 },
 };
 
+const D3STRUCTURES_C_PRESETS = {
+  240: { variant: "box_lines", N: 7, AZ: (2 * PI_VALUE) / 5, AY: 0, AX: 0, QX: -2.5, QY: 0, QZ: 0 },
+  241: { variant: "box_lines", N: 7, AZ: PI_VALUE / 4, AY: Math.atan(Math.sqrt(0.5)), AX: 0, QX: -12, QY: -1.4, QZ: 0.8 },
+  242: { variant: "plane_grid", N: 100, AZ: PI_VALUE / 4, AY: 0, AX: 0, QX: -2, QY: 0, QZ: 3 },
+};
+
+const D3STRUCTURES_D_PRESETS = {
+  243: { N: 2000, M: 20, AZ: 0, AY: (-2 * PI_VALUE) / 5, AX: 0, QX: -2.7, QY: 0, QZ: 0, radiusMode: "circle" },
+  244: { N: 2000, M: 50, AZ: 0, AY: (-2 * PI_VALUE) / 5, AX: 0, QX: -2.7, QY: 0, QZ: 0, radiusMode: "circle" },
+  245: { N: 2000, M: 20, AZ: 0, AY: (-2 * PI_VALUE) / 5, AX: 0, QX: -2.7, QY: 0, QZ: 0, radiusMode: "diamond" },
+  246: { N: 2000, M: 50, AZ: 0, AY: (-2 * PI_VALUE) / 5, AX: 0, QX: -2.7, QY: 0, QZ: 0, radiusMode: "diamond" },
+  247: { N: 2000, M: 200, AZ: 0, AY: (-2 * PI_VALUE) / 5, AX: 0, QX: -2.7, QY: 0, QZ: 0, radiusMode: "circle", halfSweep: true },
+  248: { N: 150, M: 50, AZ: 0, AY: (-2 * PI_VALUE) / 5, AX: 0, QX: -2.7, QY: 0, QZ: 0, radiusMode: "circle" },
+  249: { N: 200, M: 50, AZ: -PI_VALUE / 6, AY: 0, AX: 0, QX: -2.7, QY: 0, QZ: 3, radiusMode: "half_circle" },
+  250: { N: 200, M: 50, AZ: -PI_VALUE / 6, AY: -PI_VALUE / 5, AX: 0, QX: -2.7, QY: 0, QZ: 0, radiusMode: "circle" },
+  251: { N: 200, M: 50, AZ: 0, AY: (-2 * PI_VALUE) / 5, AX: 0, QX: -2.7, QY: 0, QZ: 0, radiusMode: "circle" },
+  252: { N: 2000, M: 100, AZ: 0, AY: -PI_VALUE / 9, AX: 0, QX: -2.5, QY: 0, QZ: 0, radiusMode: "wave" },
+};
+
 function setup() {
   PALETTE("NEW_BLUE");
   createCanvas(windowWidth, windowHeight);
   pixelDensity(1);
   frameRate(30);
   buildModes();
+  applyPalettePreset(themeConfig.palette);
+  syncDrawingColorsToTheme(true);
   captureInitialState();
   loadFavorites();
   setupUi();
-  applyPalettePreset(globalConfig.palette);
   window.addEventListener("keydown", handleWindowKeyDown, { passive: false });
 }
 
@@ -245,6 +285,8 @@ function buildModes() {
   addPresetModes("d3structures", "D3CUBE", D3CUBE_PRESETS, renderD3Cube);
   addPresetModes("d3structures", "D3STRUCTURES", D3STRUCTURES_A_PRESETS, renderD3StructureA);
   addPresetModes("d3structures", "D3STRUCTURES", D3STRUCTURES_B_PRESETS, renderD3StructureB);
+  addPresetModes("d3structures", "D3STRUCTURES", D3STRUCTURES_C_PRESETS, renderD3StructureC);
+  addPresetModes("d3structures", "D3STRUCTURES", D3STRUCTURES_D_PRESETS, renderD3StructureD);
 
   currentModeIndex = pickWeightedModeIndex();
 }
@@ -269,6 +311,8 @@ function setupUi() {
   controlsEl = document.getElementById("controls");
   configPanelEl = document.getElementById("config-panel");
   configContentEl = document.getElementById("config-content");
+  themePanelEl = document.getElementById("theme-panel");
+  themeContentEl = document.getElementById("theme-content");
   uiHintEl = document.getElementById("ui-hint");
   pickModeEl = document.getElementById("pick-mode");
   startAudioButtons = [
@@ -300,6 +344,16 @@ function setupUi() {
     applyChromeVisibility();
     flashStatus(configPanelVisible ? "Config panel visible" : "Config panel hidden");
   });
+  document.getElementById("show-colors").addEventListener("click", () => {
+    if (!chromeVisible) {
+      chromeVisible = true;
+      themePanelVisible = true;
+    } else {
+      themePanelVisible = !themePanelVisible;
+    }
+    applyChromeVisibility();
+    flashStatus(themePanelVisible ? "Colors panel visible" : "Colors panel hidden");
+  });
   document.getElementById("toggle-config").addEventListener("click", () => {
     configPanelVisible = !configPanelVisible;
     applyChromeVisibility();
@@ -322,6 +376,7 @@ function setupUi() {
   );
   renderModePicker();
   renderConfigPanel();
+  renderThemePanel();
   applyChromeVisibility();
 }
 
@@ -589,7 +644,8 @@ function renderBatons(preset, metrics, drawing) {
 }
 
 function renderD3Cube(preset, metrics, drawing) {
-  let unit = min(width, height) * preset.unit * globalConfig.size * (1 + getGlobalAudioAmount("size", metrics) * 0.35);
+  let unit = min(width, height) * preset.unit;
+  let scale = globalConfig.size * (1 + getGlobalAudioAmount("size", metrics) * 0.35);
   let az = getPresetValue(drawing, "AZ", preset.AZ, metrics) + metrics.time * getSpeedMod(metrics) * 0.04;
   let ay = getPresetValue(drawing, "AY", preset.AY, metrics) + metrics.time * getSpeedMod(metrics) * 0.03;
   let ax = getPresetValue(drawing, "AX", preset.AX, metrics) + metrics.treble * 0.12;
@@ -600,14 +656,14 @@ function renderD3Cube(preset, metrics, drawing) {
   strokeWeight(0.9 + metrics.level);
 
   if (preset.variant === "single") {
-    drawCubePolylineSet((point) => point, preset, az, ay, ax, qx, qy, qz, unit);
+    drawCubePolylineSet((point) => point, preset, az, ay, ax, qx, qy, qz, unit, scale);
     return;
   }
 
   if (preset.variant === "scaled_stack") {
     for (let i = 0; i <= 20; i++) {
       let k = 1 - i / 20;
-      drawCubePolylineSet((point) => [k * (2 * point[0] - 1), k * (2 * point[1] - 1), k * (2 * point[2] - 1)], preset, az, ay, ax, qx, qy, qz, unit);
+      drawCubePolylineSet((point) => [k * (2 * point[0] - 1), k * (2 * point[1] - 1), k * (2 * point[2] - 1)], preset, az, ay, ax, qx, qy, qz, unit, scale);
     }
     return;
   }
@@ -622,7 +678,7 @@ function renderD3Cube(preset, metrics, drawing) {
         let my = point[1];
         let mz = point[2];
         return [cc * mx - ss * mz, my, mx * ss + mz * cc];
-      }, preset, az, ay, ax, qx, qy, qz, unit);
+      }, preset, az, ay, ax, qx, qy, qz, unit, scale);
     }
     return;
   }
@@ -636,7 +692,7 @@ function renderD3Cube(preset, metrics, drawing) {
         let gr = 2 * point[0] - 1;
         let z0 = 2 * point[2] - 1;
         return [cc * gr - ss * z0, 2 * point[1] - 1, gr * ss + z0 * cc];
-      }, preset, az, ay, ax, qx, qy, qz, unit);
+      }, preset, az, ay, ax, qx, qy, qz, unit, scale);
     }
     return;
   }
@@ -644,7 +700,7 @@ function renderD3Cube(preset, metrics, drawing) {
   if (preset.variant === "grid2d") {
     for (let i = 0; i < preset.gridX; i++) {
       for (let j = 0; j < preset.gridY; j++) {
-        drawCubePolylineSet((point) => [point[0] + i * preset.stepX, point[1] + j * preset.stepY, point[2]], preset, az, ay, ax, qx, qy, qz, unit);
+        drawCubePolylineSet((point) => [point[0] + i * preset.stepX, point[1] + j * preset.stepY, point[2]], preset, az, ay, ax, qx, qy, qz, unit, scale);
       }
     }
     return;
@@ -654,14 +710,14 @@ function renderD3Cube(preset, metrics, drawing) {
     for (let i = 0; i < preset.gridX; i++) {
       for (let j = 0; j < preset.gridY; j++) {
         for (let k = 0; k < preset.gridZ; k++) {
-          drawCubePolylineSet((point) => [point[0] + i * preset.stepX, point[1] + j * preset.stepY, point[2] + k * preset.stepZ], preset, az, ay, ax, qx, qy, qz, unit);
+          drawCubePolylineSet((point) => [point[0] + i * preset.stepX, point[1] + j * preset.stepY, point[2] + k * preset.stepZ], preset, az, ay, ax, qx, qy, qz, unit, scale);
         }
       }
     }
   }
 }
 
-function drawCubePolylineSet(transformPoint, preset, az, ay, ax, qx, qy, qz, unit) {
+function drawCubePolylineSet(transformPoint, preset, az, ay, ax, qx, qy, qz, unit, scale) {
   let projectedPolylines = [];
   let minX = Infinity;
   let minY = Infinity;
@@ -697,7 +753,7 @@ function drawCubePolylineSet(transformPoint, preset, az, ay, ax, qx, qy, qz, uni
 
   let spanX = max(1, maxX - minX);
   let spanY = max(1, maxY - minY);
-  let fit = min(width * 0.7 / spanX, height * 0.7 / spanY);
+  let fit = min(width * 0.7 / spanX, height * 0.7 / spanY) * scale;
   let centerX = (minX + maxX) * 0.5;
   let centerY = (minY + maxY) * 0.5;
 
@@ -710,19 +766,21 @@ function drawCubePolylineSet(transformPoint, preset, az, ay, ax, qx, qy, qz, uni
   }
 }
 
-function renderElastic(_preset, metrics) {
+function renderElastic(preset, metrics) {
   let unit = min(width, height) * 0.44 * globalConfig.size * (1 + getGlobalAudioAmount("size", metrics) * 0.6);
   let centerX = width * 0.5;
   let centerY = height * 0.5;
   let time = metrics.time;
+  let maxI = preset.gridX || 20;
+  let maxJ = preset.gridY || 40;
 
   strokeWeight(0.95 + metrics.level);
   for (let axis = 0; axis <= 1; axis++) {
-    for (let i = 0; i <= 20; i++) {
+    for (let i = 0; i <= maxI; i++) {
       beginShape();
-      for (let j = 0; j <= 40; j++) {
-        let x = i / 20 - 1;
-        let y = j / 20 - 1;
+      for (let j = 0; j <= maxJ; j++) {
+        let x = (2 * i) / maxI - 1;
+        let y = (2 * j) / maxJ - 1;
         if (axis === 1) {
           let swap = x;
           x = y;
@@ -733,7 +791,13 @@ function renderElastic(_preset, metrics) {
         let an = x !== 0 ? atan(y / x) : HALF_PI_VALUE * (y < 0 ? -1 : 1);
         if (x < 0) an += PI_VALUE;
         if (di < 1) {
-          an += TAU_VALUE * (1 - di) * (1 + metrics.bass * 0.45) + time * getSpeedMod(metrics) * (0.18 + metrics.level * 0.4);
+          if (preset.angleMode === "linear") {
+            an += preset.angleAmount * (1 - di) * (1 + metrics.bass * 0.35);
+          } else if (preset.angleMode === "sin1" || preset.angleMode === "sin2") {
+            an += preset.angleAmount * sin(preset.angleWave * (1 - di));
+          }
+          if (preset.distPower && preset.distPower !== 1) di = pow(di, preset.distPower);
+          an += time * getSpeedMod(metrics) * (0.18 + metrics.level * 0.4);
         }
 
         x = di * cos(an);
@@ -743,6 +807,76 @@ function renderElastic(_preset, metrics) {
       endShape();
     }
   }
+}
+
+function renderD3StructureC(preset, metrics, drawing) {
+  let time = metrics.time;
+  let az = getPresetValue(drawing, "AZ", preset.AZ, metrics) + time * getSpeedMod(metrics) * 0.04;
+  let ay = getPresetValue(drawing, "AY", preset.AY, metrics) + metrics.bass * 0.2;
+  let ax = getPresetValue(drawing, "AX", preset.AX, metrics) + metrics.treble * 0.08;
+  let qx = getPresetValue(drawing, "QX", preset.QX, metrics);
+  let qy = getPresetValue(drawing, "QY", preset.QY, metrics);
+  let qz = getPresetValue(drawing, "QZ", preset.QZ, metrics);
+  let n = max(2, floor(getPresetValue(drawing, "N", preset.N, metrics)));
+  let unit = min(width, height) * 0.8 * globalConfig.size;
+
+  strokeWeight(0.9 + metrics.level);
+  let faceCount = preset.variant === "plane_grid" ? 2 : 3;
+  for (let face = 1; face <= faceCount; face++) {
+    for (let i = 0; i <= n; i++) {
+      for (let j = 0; j <= n; j++) {
+        let start = d3StructureCPoint(face, i, j, n, 0, preset.variant);
+        let end = d3StructureCPoint(face, i, j, n, 1, preset.variant);
+        let p1 = project3DWithOffsets(start[0], start[1], start[2], az, ay, ax, qx, qy, qz, 2, 2, unit);
+        let p2 = project3DWithOffsets(end[0], end[1], end[2], az, ay, ax, qx, qy, qz, 2, 2, unit);
+        line(p1.x, p1.y, p2.x, p2.y);
+      }
+    }
+  }
+}
+
+function d3StructureCPoint(face, i, j, n, side, variant) {
+  if (variant === "plane_grid") {
+    if (face === 1) return [i / n, side, 0];
+    return [side, i / n, 0];
+  }
+  if (face === 1) return [i / n, side, j / n];
+  if (face === 2) return [j / n, i / n, side];
+  return [side, j / n, i / n];
+}
+
+function renderD3StructureD(preset, metrics, drawing) {
+  let time = metrics.time;
+  let az = getPresetValue(drawing, "AZ", preset.AZ, metrics) + time * getSpeedMod(metrics) * 0.05;
+  let ay = getPresetValue(drawing, "AY", preset.AY, metrics) + metrics.bass * 0.15;
+  let ax = getPresetValue(drawing, "AX", preset.AX, metrics) + metrics.treble * 0.08;
+  let qx = getPresetValue(drawing, "QX", preset.QX, metrics);
+  let qy = getPresetValue(drawing, "QY", preset.QY, metrics);
+  let qz = getPresetValue(drawing, "QZ", preset.QZ, metrics);
+  let n = max(20, floor(getPresetValue(drawing, "N", preset.N, metrics)));
+  let m = getPresetValue(drawing, "M", preset.M, metrics);
+  let unit = min(width, height) * 0.82 * globalConfig.size * (1 + getGlobalAudioAmount("size", metrics) * 0.35);
+  let limit = preset.halfSweep ? floor(n / 2) : n;
+
+  strokeWeight(0.9 + metrics.level);
+  beginShape();
+  for (let i = 0; i <= limit; i++) {
+    let mx = (2 * i) / n - 1;
+    let r = d3StructureDRadius(preset.radiusMode, mx, m, i, n);
+    let an = (TAU_VALUE * m * i) / n + time * getSpeedMod(metrics) * 0.1;
+    let my = r * cos(an);
+    let mz = r * sin(an);
+    let point = project3DWithOffsets(mx, my, mz, az, ay, ax, qx, qy, qz, 2, 2, unit);
+    vertex(point.x, point.y);
+  }
+  endShape();
+}
+
+function d3StructureDRadius(mode, mx, m, i, n) {
+  if (mode === "diamond") return 1 - abs(mx);
+  if (mode === "half_circle") return 0.5 * sqrt(max(0, 1 - mx * mx));
+  if (mode === "wave") return 0.3 + 0.3 * sin((TAU_VALUE * m * i) / n + (3 * PI_VALUE) / 2);
+  return sqrt(max(0, 1 - mx * mx));
 }
 
 function renderD3StructureA(preset, metrics, drawing) {
@@ -947,6 +1081,7 @@ function toggleChrome() {
 function applyChromeVisibility() {
   if (controlsEl) controlsEl.classList.toggle("is-hidden", !chromeVisible);
   if (configPanelEl) configPanelEl.classList.toggle("is-hidden", !chromeVisible || !configPanelVisible);
+  if (themePanelEl) themePanelEl.classList.toggle("is-hidden", !chromeVisible || !themePanelVisible);
   let toggleButton = document.getElementById("toggle-config");
   if (toggleButton) toggleButton.textContent = configPanelVisible ? "Hide Panel" : "Show Panel";
 }
@@ -1006,7 +1141,7 @@ function resetConfig() {
   for (let mode of modes) {
     Object.assign(mode.preset, JSON.parse(JSON.stringify(initialPresetByDrawing[mode.drawing])));
   }
-  applyPalettePreset(globalConfig.palette);
+  syncDrawingColorsToTheme(true);
   renderConfigPanel();
   flashStatus("Config reset");
 }
@@ -1106,31 +1241,41 @@ function getDetailCount(baseDetail, metrics) {
 }
 
 function updatePaletteFromConfig() {
-  BG_COLOR = globalConfig.bgColor;
-  STROKE_COLOR = globalConfig.strokeColor;
+  BG_COLOR = themeConfig.bgColor;
+  STROKE_COLOR = globalConfig.drawColor;
   updateUiTheme();
 }
 
 function updateUiTheme() {
-  document.documentElement.style.setProperty("--ui-bg", globalConfig.bgColor);
-  document.documentElement.style.setProperty("--ui-fg", globalConfig.strokeColor);
-  document.documentElement.style.setProperty("--ui-accent", globalConfig.accentColor);
+  document.documentElement.style.setProperty("--ui-bg", themeConfig.bgColor);
+  document.documentElement.style.setProperty("--ui-fg", themeConfig.strokeColor);
+  document.documentElement.style.setProperty("--ui-accent", themeConfig.accentColor);
 }
 
 function getReactiveStrokeColor(metrics) {
   let base = color(STROKE_COLOR);
   if (globalConfig.colorMode === "static") return base;
-  let accent = color(globalConfig.accentColor);
+  let accent = color(globalConfig.audioAccentColor);
   return lerpColor(base, accent, constrain(getGlobalAudioAmount("color", metrics), 0, 1));
 }
 
 function applyPalettePreset(name) {
   let entry = PALETTES_UI[name];
   if (!entry) return;
-  globalConfig.palette = name;
-  globalConfig.bgColor = entry.bg;
-  globalConfig.strokeColor = entry.stroke;
-  globalConfig.accentColor = entry.accent;
+  let previousStroke = themeConfig.strokeColor;
+  let previousAccent = themeConfig.accentColor;
+  themeConfig.palette = name;
+  themeConfig.bgColor = entry.bg;
+  themeConfig.strokeColor = entry.stroke;
+  themeConfig.accentColor = entry.accent;
+  if (globalConfig.drawColor === previousStroke) globalConfig.drawColor = themeConfig.strokeColor;
+  if (globalConfig.audioAccentColor === previousAccent) globalConfig.audioAccentColor = themeConfig.accentColor;
+  renderThemePanel();
+}
+
+function syncDrawingColorsToTheme(force) {
+  if (force || !globalConfig.drawColor) globalConfig.drawColor = themeConfig.strokeColor;
+  if (force || !globalConfig.audioAccentColor) globalConfig.audioAccentColor = themeConfig.accentColor;
 }
 
 function toggleFullscreen() {
@@ -1144,7 +1289,7 @@ function renderConfigPanel() {
 
   let html = "";
   html += renderSection("global", "General", [
-    makeSliderControl("size", "Size", globalConfig.size, 0.4, 3.2, 0.01),
+    makeSliderControl("size", "Canvas Scale", globalConfig.size, 0.05, 3, 0.01, "percent"),
     makeSliderControl("speed", "Speed", globalConfig.speed, 0.2, 2.5, 0.01),
     makeSliderControl("micSensitivity", "Mic Sensitivity", globalConfig.micSensitivity, 0, 10, 0.01),
     makeSliderControl("placeX", "Placement X", globalConfig.placeX, -1, 1, 0.01),
@@ -1154,15 +1299,8 @@ function renderConfigPanel() {
     makeAudioRouteControls("global", "detail", "Detail Audio", globalAudioRouting.detail),
   ]);
   html += renderSection("color", "Color", [
-    makeSelectControl(
-      "palette",
-      "Palette",
-      globalConfig.palette,
-      Object.keys(PALETTES_UI).map((key) => ({ value: key, label: PALETTES_UI[key].label }))
-    ),
-    makeColorControl("bgColor", "Background", globalConfig.bgColor),
-    makeColorControl("strokeColor", "Drawing", globalConfig.strokeColor),
-    makeColorControl("accentColor", "Audio Accent", globalConfig.accentColor),
+    makeColorControl("drawColor", "Drawing", globalConfig.drawColor),
+    makeColorControl("audioAccentColor", "Audio Accent", globalConfig.audioAccentColor),
     makeSelectControl(
       "colorMode",
       "Color Mode",
@@ -1184,6 +1322,25 @@ function renderConfigPanel() {
   updateFavoriteButton();
 }
 
+function renderThemePanel() {
+  if (!themeContentEl) return;
+  let html = "";
+  html += renderSection("theme", "Theme", [
+    makeSelectControl(
+      "palette",
+      "Palette",
+      themeConfig.palette,
+      Object.keys(PALETTES_UI).map((key) => ({ value: key, label: PALETTES_UI[key].label })),
+      "theme"
+    ),
+    makeColorControl("bgColor", "Background", themeConfig.bgColor, "theme"),
+    makeColorControl("strokeColor", "Interface / Default Line", themeConfig.strokeColor, "theme"),
+    makeColorControl("accentColor", "Interface Accent", themeConfig.accentColor, "theme"),
+  ]);
+  themeContentEl.innerHTML = html;
+  bindThemeControls();
+}
+
 function updateFavoriteButton() {
   let button = document.getElementById("toggle-favorite");
   if (!button) return;
@@ -1201,13 +1358,23 @@ function bindGlobalControls() {
   });
 }
 
+function bindThemeControls() {
+  themeContentEl.querySelectorAll("[data-theme-key]").forEach((el) => {
+    let handler = () => {
+      updateThemeConfigFromInput(el);
+    };
+    el.addEventListener("input", handler);
+    el.addEventListener("change", handler);
+  });
+}
+
 function bindPresetControls(preset) {
   configContentEl.querySelectorAll("[data-preset-key]").forEach((el) => {
-    let handler = () => {
-      let key = el.dataset.presetKey;
-      preset[key] = Number(el.value);
-      updateValueText("value-preset-" + key, preset[key]);
-    };
+      let handler = () => {
+        let key = el.dataset.presetKey;
+        preset[key] = Number(el.value);
+        updateValueText("value-preset-" + key, key, preset[key]);
+      };
     el.addEventListener("input", handler);
     el.addEventListener("change", handler);
   });
@@ -1221,7 +1388,7 @@ function bindAudioRouteControls(drawing) {
       let field = el.dataset.audioField;
       let route = scope === "global" ? globalAudioRouting[key] : getPresetRoute(drawing, key);
       route[field] = field === "amount" ? Number(el.value) : el.value;
-      updateValueText(`value-audio-${scope}-${key}-${field}`, route[field]);
+      updateValueText(`value-audio-${scope}-${key}-${field}`, field === "amount" ? key : field, route[field]);
     };
     el.addEventListener("input", handler);
     el.addEventListener("change", handler);
@@ -1232,20 +1399,30 @@ function updateGlobalConfigFromInput(el) {
   let key = el.dataset.globalKey;
   let value = el.type === "checkbox" ? el.checked : el.type === "range" ? Number(el.value) : el.value;
   globalConfig[key] = value;
+  updateValueText("value-global-" + key, key, value);
+}
+
+function updateThemeConfigFromInput(el) {
+  let key = el.dataset.themeKey;
+  let value = el.value;
+  let previousStroke = themeConfig.strokeColor;
+  let previousAccent = themeConfig.accentColor;
 
   if (key === "palette") {
     if (value !== "custom") applyPalettePreset(value);
+    else themeConfig.palette = value;
+    renderThemePanel();
     renderConfigPanel();
     return;
   }
 
-  if (key === "bgColor" || key === "strokeColor" || key === "accentColor") {
-    globalConfig.palette = "custom";
-    let paletteSelect = document.getElementById("global-palette");
-    if (paletteSelect) paletteSelect.value = "custom";
-  }
-
-  updateValueText("value-global-" + key, value);
+  themeConfig[key] = value;
+  themeConfig.palette = "custom";
+  if (key === "strokeColor" && globalConfig.drawColor === previousStroke) globalConfig.drawColor = value;
+  if (key === "accentColor" && globalConfig.audioAccentColor === previousAccent) globalConfig.audioAccentColor = value;
+  let paletteSelect = document.getElementById("theme-palette");
+  if (paletteSelect) paletteSelect.value = "custom";
+  renderConfigPanel();
 }
 
 function renderSection(sectionKey, title, rows) {
@@ -1302,11 +1479,11 @@ function inferRange(key, value) {
   return { min: 0, max: max(10, absValue * 2.5), step: 0.01 };
 }
 
-function makeSliderControl(key, label, value, min, max, step) {
+function makeSliderControl(key, label, value, min, max, step, format = "") {
   return `
     <div class="config-row">
       <label for="global-${key}">${label}</label>
-      <span id="value-global-${key}" class="config-value">${formatValue(value)}</span>
+      <span id="value-global-${key}" class="config-value">${formatValue(key, value, format)}</span>
       <input id="global-${key}" data-global-key="${key}" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
     </div>
   `;
@@ -1316,7 +1493,7 @@ function makePresetSliderControl(key, label, value, min, max, step) {
   return `
     <div class="config-row">
       <label for="preset-${key}">${label}</label>
-      <span id="value-preset-${key}" class="config-value">${formatValue(value)}</span>
+      <span id="value-preset-${key}" class="config-value">${formatValue(key, value)}</span>
       <input id="preset-${key}" data-preset-key="${key}" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
     </div>
   `;
@@ -1332,17 +1509,18 @@ function makeAudioRouteControls(scope, key, label, route) {
     </div>
     <div class="config-row">
       <label for="audio-${scope}-${key}-amount">${label} Sensitivity</label>
-      <span id="value-audio-${scope}-${key}-amount" class="config-value">${formatValue(route.amount)}</span>
+      <span id="value-audio-${scope}-${key}-amount" class="config-value">${formatValue(key, route.amount)}</span>
       <input id="audio-${scope}-${key}-amount" data-audio-scope="${scope}" data-audio-key="${key}" data-audio-field="amount" type="range" min="0" max="10" step="0.01" value="${route.amount}">
     </div>
   `;
 }
 
-function makeColorControl(key, label, value) {
+function makeColorControl(key, label, value, scope = "global") {
+  let dataKey = scope === "theme" ? "data-theme-key" : "data-global-key";
   return `
     <div class="config-row">
-      <label for="global-${key}">${label}</label>
-      <input id="global-${key}" data-global-key="${key}" type="color" value="${value}">
+      <label for="${scope}-${key}">${label}</label>
+      <input id="${scope}-${key}" ${dataKey}="${key}" type="color" value="${value}">
     </div>
   `;
 }
@@ -1356,25 +1534,27 @@ function makeCheckboxControl(key, label, value) {
   `;
 }
 
-function makeSelectControl(key, label, value, options) {
+function makeSelectControl(key, label, value, options, scope = "global") {
+  let dataKey = scope === "theme" ? "data-theme-key" : "data-global-key";
   let optionsHtml = options
     .map((option) => `<option value="${option.value}" ${option.value === value ? "selected" : ""}>${option.label}</option>`)
     .join("");
   return `
     <div class="config-row">
-      <label for="global-${key}">${label}</label>
-      <select id="global-${key}" data-global-key="${key}">${optionsHtml}</select>
+      <label for="${scope}-${key}">${label}</label>
+      <select id="${scope}-${key}" ${dataKey}="${key}">${optionsHtml}</select>
     </div>
   `;
 }
 
-function updateValueText(id, value) {
+function updateValueText(id, key, value) {
   let el = document.getElementById(id);
-  if (el) el.textContent = formatValue(value);
+  if (el) el.textContent = formatValue(key, value, id === "value-global-size" ? "percent" : "");
 }
 
-function formatValue(value) {
+function formatValue(key, value, format = "") {
   if (typeof value === "boolean") return value ? "On" : "Off";
+  if (format === "percent") return Math.round(value * 100) + "%";
   return abs(value) >= 100 ? value.toFixed(0) : value.toFixed(2);
 }
 

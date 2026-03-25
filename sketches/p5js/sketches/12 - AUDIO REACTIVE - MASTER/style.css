@@ -92,6 +92,11 @@ canvas {
   width: min(360px, calc(100vw - 32px));
 }
 
+.config-panel-left {
+  left: 16px;
+  right: auto;
+}
+
 .config-panel.is-hidden {
   display: none;
 }
