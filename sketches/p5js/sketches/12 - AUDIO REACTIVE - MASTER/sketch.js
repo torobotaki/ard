@@ -31,6 +31,7 @@ let chromeVisible = true;
 let configPanelVisible = true;
 let hideUiAt = 0;
 let sectionOpenState = { global: true, color: false, current: false };
+let currentFavorites = new Set();
 
 const PI_VALUE = Math.PI;
 const HALF_PI_VALUE = Math.PI / 2;
@@ -58,6 +59,8 @@ let globalConfig = {
   size: 1,
   speed: 1,
   micSensitivity: 1.2,
+  placeX: 0,
+  placeY: 0,
   palette: "blue",
   bgColor: "#013abb",
   strokeColor: "#f7eb23",
@@ -124,9 +127,36 @@ const BATONS_PRESETS = {
   114: { N: 260, M: 7, K: 7 },
 };
 
+const SPIRAL_PRESETS = {
+  97: { detail: 2000, T: 40, R: 0.8, L: 0.1, turnScale: 1, yScale: 1, yOffset: 0 },
+  98: { detail: 3000, T: 60, R: 0.1, L: 0.1, turnScale: 1, yScale: 1.3, yOffset: -0.16 },
+  99: { detail: 2000, T: 40, R: 0.8, L: 0.1, turnScale: 1, yScale: 1.7, yOffset: -0.09 },
+  100: { detail: 9000, T: 50, R: 0.7, L: 0.1, turnScale: 4, yScale: 1.4, yOffset: 0 },
+};
+
 const ELASTIC_PRESETS = {
   176: {},
 };
+
+const D3CUBE_PRESETS = {
+  207: { variant: "single", OX: 1.9, OY: -0.8, OZ: 0.25, AZ: 3 * PI_VALUE / 4, AY: 0, AX: 0, QX: 0, QY: 0, QZ: 0, unit: 0.7 },
+  208: { variant: "scaled_stack", OX: 0, OY: 0, OZ: 0, AZ: PI_VALUE / 5, AY: -PI_VALUE / 7, AX: 0, QX: -3.5, QY: 0, QZ: 1.5, unit: 0.82 },
+  210: { variant: "rotation_sweep_raw", OX: 0, OY: 0.5, OZ: 0, AZ: PI_VALUE / 3, AY: 0, AX: 0, QX: -4, QY: 0.1, QZ: 0.3, unit: 0.82 },
+  212: { variant: "rotation_sweep_centered", OX: 0, OY: 0, OZ: 0, AZ: PI_VALUE / 5, AY: -PI_VALUE / 4, AX: 0, QX: -5, QY: 0.2, QZ: 0.3, unit: 0.85 },
+  213: { variant: "rotation_sweep_centered", OX: 0, OY: 0, OZ: 0, AZ: PI_VALUE / 3, AY: -PI_VALUE / 7, AX: 0, QX: -6, QY: 0.3, QZ: 0.5, unit: 0.88 },
+  215: { variant: "grid2d", OX: 0, OY: 0, OZ: 0, AZ: PI_VALUE / 2, AY: 0, AX: 0, QX: -14, QY: -6.5, QZ: 7, gridX: 5, gridY: 21, stepX: 3, stepY: 3, unit: 0.92 },
+  216: { variant: "grid2d", OX: 0, OY: 0, OZ: 0, AZ: PI_VALUE / 3, AY: -PI_VALUE / 6, AX: 0, QX: -15, QY: -1, QZ: 3, gridX: 5, gridY: 21, stepX: 3, stepY: 3, unit: 0.92 },
+  217: { variant: "grid2d", OX: 0, OY: 0, OZ: 0, AZ: PI_VALUE / 2, AY: -PI_VALUE / 6, AX: 0, QX: -14, QY: -6.5, QZ: 7, gridX: 5, gridY: 21, stepX: 3, stepY: 3, unit: 0.92 },
+  219: { variant: "grid3d", OX: 0, OY: 0, OZ: 0, AZ: PI_VALUE / 4, AY: Math.atan(Math.sqrt(0.5)), AX: 0, QX: -10, QY: 0, QZ: 0, gridX: 4, gridY: 4, gridZ: 4, stepX: 3, stepY: 3, stepZ: 3, unit: 0.9 },
+  220: { variant: "grid3d", OX: 0, OY: 0, OZ: 0, AZ: PI_VALUE / 4, AY: 0, AX: 0, QX: -10, QY: 0, QZ: 3.5, gridX: 4, gridY: 4, gridZ: 4, stepX: 3, stepY: 3, stepZ: 3, unit: 0.9 },
+};
+
+const CUBE_POLYLINES = [
+  [[1, 0, 0], [0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1], [0, 1, 1], [0, 0, 1]],
+  [[1, 0, 1], [1, 1, 1]],
+  [[0, 0, 0], [0, 1, 0], [0, 1, 1]],
+  [[1, 1, 0], [0, 1, 0]],
+];
 
 const D3STRUCTURES_A_PRESETS = {
   221: { N: 900, M: 30, K: 0, AZ: PI_VALUE / 4, AY: -PI_VALUE / 8, AX: 0, QX: -2.5 },
@@ -160,6 +190,7 @@ function setup() {
   frameRate(30);
   buildModes();
   captureInitialState();
+  loadFavorites();
   setupUi();
   applyPalettePreset(globalConfig.palette);
   window.addEventListener("keydown", handleWindowKeyDown, { passive: false });
@@ -186,9 +217,11 @@ function buildModes() {
   addPresetModes("composition", "COMPOSITION 2", COMPOSITION2_PRESETS, renderComposition2);
   addPresetModes("orbital", "COURBES ORBITALES", ORBITAL_PRESETS, renderOrbital);
   addPresetModes("tournante", "COURBES TOURNANTES", TOURNANTE_PRESETS, renderTournante);
+  addPresetModes("orbital", "COURBES SPIRALES", SPIRAL_PRESETS, renderSpiral);
   addPresetModes("modulo", "LINÉAIRES MODULO", MODULO_PRESETS, renderModulo);
   addPresetModes("batons", "LINÉAIRES BÂTONS", BATONS_PRESETS, renderBatons);
   addPresetModes("elastic", "QUADRILLAGES ÉLASTIQUES", ELASTIC_PRESETS, renderElastic);
+  addPresetModes("d3structures", "D3CUBE", D3CUBE_PRESETS, renderD3Cube);
   addPresetModes("d3structures", "D3STRUCTURES", D3STRUCTURES_A_PRESETS, renderD3StructureA);
   addPresetModes("d3structures", "D3STRUCTURES", D3STRUCTURES_B_PRESETS, renderD3StructureB);
 
@@ -229,6 +262,7 @@ function setupUi() {
   document.getElementById("toggle-fullscreen").addEventListener("click", () => toggleFullscreen());
   document.getElementById("toggle-menu").addEventListener("click", () => toggleChrome());
   document.getElementById("next-mode").addEventListener("click", () => nextMode());
+  document.getElementById("previous-mode").addEventListener("click", () => previousMode());
   document.getElementById("random-mode").addEventListener("click", () => randomMode());
   pickModeEl.addEventListener("change", () => {
     currentModeIndex = Number(pickModeEl.value);
@@ -252,6 +286,9 @@ function setupUi() {
   document.getElementById("reset-config").addEventListener("click", () => {
     resetConfig();
   });
+  document.getElementById("toggle-favorite").addEventListener("click", () => {
+    toggleFavorite();
+  });
   document.getElementById("overlay-dismiss").addEventListener("click", () => {
     hideOverlay();
     flashStatus("Running without microphone");
@@ -271,8 +308,8 @@ function renderModePicker() {
   if (!pickModeEl) return;
   pickModeEl.innerHTML = modes
     .map((mode, index) => {
-      let heart = FAVORITE_DRAWINGS.has(mode.drawing) ? "♥ " : "";
-      return `<option value="${index}">${heart}${mode.label}</option>`;
+      let heart = currentFavorites.has(mode.drawing) ? "♥ " : "";
+      return `<option value="${index}">${heart}${mode.drawing}. ${mode.label}</option>`;
     })
     .join("");
   syncModePicker();
@@ -284,6 +321,7 @@ function syncModePicker() {
 
 function renderMode(mode, metrics) {
   push();
+  translate(width * globalConfig.placeX * 0.4, height * globalConfig.placeY * 0.4);
   stroke(getReactiveStrokeColor(metrics));
   noFill();
   mode.renderer(mode.preset, metrics, mode.drawing);
@@ -423,6 +461,35 @@ function renderTournante(preset, metrics) {
   endShape();
 }
 
+function renderSpiral(preset, metrics, drawing) {
+  let unit = min(width, height) * 0.46;
+  let sizeMod = 1 + getGlobalAudioAmount("size", metrics);
+  let detail = getDetailCount(getPresetValue(drawing, "detail", preset.detail, metrics), metrics);
+  let turns = getPresetValue(drawing, "T", preset.T, metrics);
+  let ellipseRatio = getPresetValue(drawing, "R", preset.R, metrics);
+  let decayBase = constrain(getPresetValue(drawing, "L", preset.L, metrics), 0.001, 0.999);
+  let turnScale = getPresetValue(drawing, "turnScale", preset.turnScale, metrics);
+  let yScale = getPresetValue(drawing, "yScale", preset.yScale, metrics);
+  let yOffset = getPresetValue(drawing, "yOffset", preset.yOffset, metrics);
+  let time = metrics.time;
+
+  strokeWeight(0.9 + metrics.level * 1.2);
+  beginShape();
+  for (let i = 0; i <= detail; i++) {
+    let ratio = i / detail;
+    let rr = pow(decayBase, ratio);
+    let an = TAU_VALUE * turnScale * ratio + time * getSpeedMod(metrics) * 0.08;
+    let x = rr * cos(turns * an);
+    let y = rr * ellipseRatio * sin(turns * an);
+    let co = cos(an);
+    let si = sin(an);
+    let xx = x * co - y * si;
+    let yy = x * si + y * co;
+    vertex(width * 0.5 + unit * globalConfig.size * sizeMod * xx, height * 0.5 + unit * globalConfig.size * sizeMod * yScale * yy + unit * yOffset);
+  }
+  endShape();
+}
+
 function renderModulo(preset, metrics, drawing) {
   let unit = min(width, height);
   let sizeMod = 1 + getGlobalAudioAmount("size", metrics);
@@ -474,6 +541,128 @@ function renderBatons(preset, metrics, drawing) {
       let ya = centerY + r1 * sin(an) + r2 * sin(k * an + PI_VALUE - wobble);
       line(xd, yd, xa, ya);
     }
+  }
+}
+
+function renderD3Cube(preset, metrics, drawing) {
+  let unit = min(width, height) * preset.unit * globalConfig.size * (1 + getGlobalAudioAmount("size", metrics) * 0.35);
+  let az = getPresetValue(drawing, "AZ", preset.AZ, metrics) + metrics.time * getSpeedMod(metrics) * 0.04;
+  let ay = getPresetValue(drawing, "AY", preset.AY, metrics) + metrics.time * getSpeedMod(metrics) * 0.03;
+  let ax = getPresetValue(drawing, "AX", preset.AX, metrics) + metrics.treble * 0.12;
+  let qx = getPresetValue(drawing, "QX", preset.QX, metrics);
+  let qy = getPresetValue(drawing, "QY", preset.QY, metrics);
+  let qz = getPresetValue(drawing, "QZ", preset.QZ, metrics);
+
+  strokeWeight(0.9 + metrics.level);
+
+  if (preset.variant === "single") {
+    drawCubePolylineSet((point) => point, preset, az, ay, ax, qx, qy, qz, unit);
+    return;
+  }
+
+  if (preset.variant === "scaled_stack") {
+    for (let i = 0; i <= 20; i++) {
+      let k = 1 - i / 20;
+      drawCubePolylineSet((point) => [k * (2 * point[0] - 1), k * (2 * point[1] - 1), k * (2 * point[2] - 1)], preset, az, ay, ax, qx, qy, qz, unit);
+    }
+    return;
+  }
+
+  if (preset.variant === "rotation_sweep_raw") {
+    for (let i = 0; i <= 20; i++) {
+      let at = (PI_VALUE / 2 / 20) * i + metrics.time * getSpeedMod(metrics) * 0.1;
+      let cc = cos(at);
+      let ss = sin(at);
+      drawCubePolylineSet((point) => {
+        let mx = point[0];
+        let my = point[1];
+        let mz = point[2];
+        return [cc * mx - ss * mz, my, mx * ss + mz * cc];
+      }, preset, az, ay, ax, qx, qy, qz, unit);
+    }
+    return;
+  }
+
+  if (preset.variant === "rotation_sweep_centered") {
+    for (let i = 0; i <= 20; i++) {
+      let at = (PI_VALUE / 80) * i + metrics.time * getSpeedMod(metrics) * 0.1;
+      let cc = cos(at);
+      let ss = sin(at);
+      drawCubePolylineSet((point) => {
+        let gr = 2 * point[0] - 1;
+        let z0 = 2 * point[2] - 1;
+        return [cc * gr - ss * z0, 2 * point[1] - 1, gr * ss + z0 * cc];
+      }, preset, az, ay, ax, qx, qy, qz, unit);
+    }
+    return;
+  }
+
+  if (preset.variant === "grid2d") {
+    for (let i = 0; i < preset.gridX; i++) {
+      for (let j = 0; j < preset.gridY; j++) {
+        drawCubePolylineSet((point) => [point[0] + i * preset.stepX, point[1] + j * preset.stepY, point[2]], preset, az, ay, ax, qx, qy, qz, unit);
+      }
+    }
+    return;
+  }
+
+  if (preset.variant === "grid3d") {
+    for (let i = 0; i < preset.gridX; i++) {
+      for (let j = 0; j < preset.gridY; j++) {
+        for (let k = 0; k < preset.gridZ; k++) {
+          drawCubePolylineSet((point) => [point[0] + i * preset.stepX, point[1] + j * preset.stepY, point[2] + k * preset.stepZ], preset, az, ay, ax, qx, qy, qz, unit);
+        }
+      }
+    }
+  }
+}
+
+function drawCubePolylineSet(transformPoint, preset, az, ay, ax, qx, qy, qz, unit) {
+  let projectedPolylines = [];
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (let polyline of CUBE_POLYLINES) {
+    let projectedLine = [];
+    for (let point of polyline) {
+      let p = transformPoint(point);
+      let projected = project3DWithOffsets(
+        p[0] - preset.OX,
+        p[1] - preset.OY,
+        p[2] - preset.OZ,
+        az,
+        ay,
+        ax,
+        qx,
+        qy,
+        qz,
+        2,
+        2,
+        unit
+      );
+      projectedLine.push(projected);
+      minX = min(minX, projected.x);
+      minY = min(minY, projected.y);
+      maxX = max(maxX, projected.x);
+      maxY = max(maxY, projected.y);
+    }
+    projectedPolylines.push(projectedLine);
+  }
+
+  let spanX = max(1, maxX - minX);
+  let spanY = max(1, maxY - minY);
+  let fit = min(width * 0.7 / spanX, height * 0.7 / spanY);
+  let centerX = (minX + maxX) * 0.5;
+  let centerY = (minY + maxY) * 0.5;
+
+  for (let projectedLine of projectedPolylines) {
+    beginShape();
+    for (let projected of projectedLine) {
+      vertex((projected.x - centerX) * fit + width * 0.5, (projected.y - centerY) * fit + height * 0.5);
+    }
+    endShape();
   }
 }
 
@@ -580,6 +769,10 @@ function renderD3StructureB(preset, metrics, drawing) {
 }
 
 function project3D(mx, my, mz, az, ay, ax, qx, dc, tc, unit) {
+  return project3DWithOffsets(mx, my, mz, az, ay, ax, qx, 0, 0, dc, tc, unit);
+}
+
+function project3DWithOffsets(mx, my, mz, az, ay, ax, qx, qy, qz, dc, tc, unit) {
   let c1 = cos(az);
   let s1 = -sin(az);
   let c2 = cos(ay);
@@ -598,6 +791,8 @@ function project3D(mx, my, mz, az, ay, ax, qx, dc, tc, unit) {
   mz = s3 * uu + c3 * mz;
 
   mx -= qx;
+  my -= qy;
+  mz -= qz;
   let kp = dc / max(0.12, mx);
   let xx = -kp * my;
   let yy = kp * mz;
@@ -684,6 +879,13 @@ function nextMode() {
   renderConfigPanel();
 }
 
+function previousMode() {
+  currentModeIndex = (currentModeIndex - 1 + modes.length) % modes.length;
+  syncModePicker();
+  flashStatus("Mode: " + modes[currentModeIndex].label);
+  renderConfigPanel();
+}
+
 function randomMode() {
   currentModeIndex = pickWeightedModeIndex();
   syncModePicker();
@@ -723,6 +925,34 @@ function captureInitialState() {
   for (let mode of modes) {
     initialPresetByDrawing[mode.drawing] = JSON.parse(JSON.stringify(mode.preset));
   }
+}
+
+function loadFavorites() {
+  try {
+    let raw = localStorage.getItem("dessinsgeo_favorites");
+    if (raw) {
+      currentFavorites = new Set(JSON.parse(raw));
+      return;
+    }
+  } catch (_error) {}
+  currentFavorites = new Set(Array.from(FAVORITE_DRAWINGS));
+}
+
+function saveFavorites() {
+  try {
+    localStorage.setItem("dessinsgeo_favorites", JSON.stringify(Array.from(currentFavorites)));
+  } catch (_error) {}
+}
+
+function toggleFavorite() {
+  let drawing = modes[currentModeIndex].drawing;
+  if (currentFavorites.has(drawing)) currentFavorites.delete(drawing);
+  else currentFavorites.add(drawing);
+  saveFavorites();
+  renderModePicker();
+  renderConfigPanel();
+  syncModePicker();
+  flashStatus(currentFavorites.has(drawing) ? "Favorited" : "Unfavorited");
 }
 
 function resetConfig() {
@@ -834,6 +1064,13 @@ function getDetailCount(baseDetail, metrics) {
 function updatePaletteFromConfig() {
   BG_COLOR = globalConfig.bgColor;
   STROKE_COLOR = globalConfig.strokeColor;
+  updateUiTheme();
+}
+
+function updateUiTheme() {
+  document.documentElement.style.setProperty("--ui-bg", globalConfig.bgColor);
+  document.documentElement.style.setProperty("--ui-fg", globalConfig.strokeColor);
+  document.documentElement.style.setProperty("--ui-accent", globalConfig.accentColor);
 }
 
 function getReactiveStrokeColor(metrics) {
@@ -862,10 +1099,12 @@ function renderConfigPanel() {
   if (!mode) return;
 
   let html = "";
-  html += renderSection("global", "Global", [
-    makeSliderControl("size", "Size", globalConfig.size, 0.4, 1.8, 0.01),
+  html += renderSection("global", "General", [
+    makeSliderControl("size", "Size", globalConfig.size, 0.4, 3.2, 0.01),
     makeSliderControl("speed", "Speed", globalConfig.speed, 0.2, 2.5, 0.01),
     makeSliderControl("micSensitivity", "Mic Sensitivity", globalConfig.micSensitivity, 0, 10, 0.01),
+    makeSliderControl("placeX", "Placement X", globalConfig.placeX, -1, 1, 0.01),
+    makeSliderControl("placeY", "Placement Y", globalConfig.placeY, -1, 1, 0.01),
     makeAudioRouteControls("global", "size", "Size Audio", globalAudioRouting.size),
     makeAudioRouteControls("global", "speed", "Speed Audio", globalAudioRouting.speed),
     makeAudioRouteControls("global", "detail", "Detail Audio", globalAudioRouting.detail),
@@ -891,13 +1130,21 @@ function renderConfigPanel() {
     ),
     makeAudioRouteControls("global", "color", "Color Audio", globalAudioRouting.color),
   ]);
-  html += renderSection("current", mode.label, buildPresetControls(mode.preset));
+  html += renderSection("current", "Advanced", buildPresetControls(mode.preset));
 
   configContentEl.innerHTML = html;
   bindGlobalControls();
   bindPresetControls(mode.preset);
   bindAudioRouteControls(mode.drawing);
   bindSectionToggles();
+  updateFavoriteButton();
+}
+
+function updateFavoriteButton() {
+  let button = document.getElementById("toggle-favorite");
+  if (!button) return;
+  let isFavorite = currentFavorites.has(modes[currentModeIndex].drawing);
+  button.textContent = isFavorite ? "♥ Favorite" : "♡ Favorite";
 }
 
 function bindGlobalControls() {
@@ -983,7 +1230,7 @@ function buildPresetControls(preset) {
     .map((key) => {
       let range = inferRange(key, preset[key]);
       let route = getPresetRoute(modes[currentModeIndex].drawing, key);
-      let controls = makePresetSliderControl(key, key, preset[key], range.min, range.max, range.step);
+  let controls = makePresetSliderControl(key, key, preset[key], range.min, range.max, range.step);
       if (!GLOBAL_ROUTE_KEYS.has(key)) {
         controls += makeAudioRouteControls("preset", key, key + " Audio", route);
       }

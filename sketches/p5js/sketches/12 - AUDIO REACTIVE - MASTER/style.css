@@ -1,9 +1,15 @@
+:root {
+  --ui-bg: #013abb;
+  --ui-fg: #f7eb23;
+  --ui-accent: #ffffff;
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background: #013abb;
+  background: var(--ui-bg);
 }
 
 body {
@@ -32,9 +38,9 @@ canvas {
 
 .control-button {
   appearance: none;
-  border: 1px solid rgba(247, 235, 35, 0.5);
-  background: rgba(1, 58, 187, 0.72);
-  color: #f7eb23;
+  border: 1px solid var(--ui-fg);
+  background: color-mix(in srgb, var(--ui-bg) 82%, black 18%);
+  color: var(--ui-fg);
   padding: 10px 14px;
   font-size: 14px;
   line-height: 1;
@@ -45,9 +51,9 @@ canvas {
 
 .control-select {
   appearance: none;
-  border: 1px solid rgba(247, 235, 35, 0.5);
-  background: rgba(1, 58, 187, 0.72);
-  color: #f7eb23;
+  border: 1px solid var(--ui-fg);
+  background: color-mix(in srgb, var(--ui-bg) 82%, black 18%);
+  color: var(--ui-fg);
   padding: 10px 14px;
   font-size: 14px;
   line-height: 1;
@@ -58,18 +64,18 @@ canvas {
 }
 
 .control-button:hover {
-  background: rgba(247, 235, 35, 0.15);
+  background: color-mix(in srgb, var(--ui-fg) 12%, var(--ui-bg) 88%);
 }
 
 .control-button-primary {
-  background: #f7eb23;
-  color: #013abb;
-  border-color: #f7eb23;
+  background: var(--ui-fg);
+  color: var(--ui-bg);
+  border-color: var(--ui-fg);
   font-weight: 600;
 }
 
 .control-button-primary:hover {
-  background: #fff47a;
+  background: var(--ui-accent);
 }
 
 .control-button-small {
@@ -94,11 +100,11 @@ canvas {
   height: 100%;
   overflow: auto;
   padding: 16px;
-  border: 1px solid rgba(247, 235, 35, 0.24);
+  border: 1px solid color-mix(in srgb, var(--ui-fg) 24%, transparent);
   border-radius: 22px;
-  background: rgba(1, 22, 80, 0.8);
+  background: color-mix(in srgb, var(--ui-bg) 78%, black 22%);
   backdrop-filter: blur(14px);
-  color: #f7eb23;
+  color: var(--ui-fg);
 }
 
 .config-head {
@@ -127,7 +133,7 @@ canvas {
 }
 
 .config-details {
-  border-top: 1px solid rgba(247, 235, 35, 0.12);
+  border-top: 1px solid color-mix(in srgb, var(--ui-fg) 16%, transparent);
   padding-top: 10px;
 }
 
@@ -190,8 +196,8 @@ canvas {
   justify-content: center;
   padding: 24px;
   background:
-    radial-gradient(circle at center, rgba(247, 235, 35, 0.12), transparent 36%),
-    rgba(1, 58, 187, 0.78);
+    radial-gradient(circle at center, color-mix(in srgb, var(--ui-fg) 14%, transparent), transparent 36%),
+    color-mix(in srgb, var(--ui-bg) 78%, black 22%);
   backdrop-filter: blur(14px);
 }
 
@@ -202,10 +208,10 @@ canvas {
 .overlay-panel {
   max-width: 560px;
   padding: 28px 30px;
-  border: 1px solid rgba(247, 235, 35, 0.35);
+  border: 1px solid color-mix(in srgb, var(--ui-fg) 35%, transparent);
   border-radius: 24px;
-  background: rgba(1, 22, 80, 0.8);
-  color: #f7eb23;
+  background: color-mix(in srgb, var(--ui-bg) 74%, black 26%);
+  color: var(--ui-fg);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
 }
 
@@ -231,7 +237,7 @@ canvas {
 }
 
 .overlay-status {
-  color: #fff47a;
+  color: var(--ui-accent);
 }
 
 .ui-hint {
@@ -241,10 +247,10 @@ canvas {
   transform: translateX(-50%);
   z-index: 18;
   padding: 10px 14px;
-  border: 1px solid rgba(247, 235, 35, 0.35);
+  border: 1px solid color-mix(in srgb, var(--ui-fg) 35%, transparent);
   border-radius: 999px;
-  background: rgba(1, 22, 80, 0.8);
-  color: #f7eb23;
+  background: color-mix(in srgb, var(--ui-bg) 78%, black 22%);
+  color: var(--ui-fg);
   font-size: 13px;
   letter-spacing: 0.04em;
   opacity: 0;
