@@ -36,6 +36,9 @@ Audio input note:
 - If you want to react to computer audio instead of a physical microphone, route system audio into a browser-visible input device first.
 - On macOS, a common option is [BlackHole](https://existential.audio/blackhole/). On other systems, use the equivalent virtual audio device or loopback tool for that platform.
 
+**Kindly note**, if your **fps** drops under 10, the visuals are way to heavy for your browser, try something simpler. 
+
+
 ## What A·R·D* adds
 
 - a single audio-reactive master sketch for live use
