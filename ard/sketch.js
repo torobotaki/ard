@@ -93,13 +93,13 @@ const DEFAULT_DRAWING_CONFIG = {
 };
 
 let themeConfig = {
-  palette: "abyss",
+  palette: "synthwave",
   bgColor: "#0b132b",
-  strokeColor: "#6fffe9",
-  accentColor: "#5bc0be",
-  panelColor: "rgba(28, 37, 65, 0.84)",
-  controlColor: "rgba(58, 80, 107, 0.84)",
-  hoverColor: "rgba(111, 255, 233, 0.18)",
+  strokeColor: "#ff006e",
+  accentColor: "#3a86ff",
+  panelColor: "rgba(18, 24, 52, 0.84)",
+  controlColor: "rgba(39, 48, 94, 0.78)",
+  hoverColor: "rgba(255, 0, 110, 0.18)",
 };
 
 let appConfig = {
