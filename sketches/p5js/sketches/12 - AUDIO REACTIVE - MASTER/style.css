@@ -156,6 +156,39 @@ canvas {
   gap: 8px;
 }
 
+.drawing-block {
+  margin-bottom: 20px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--ui-fg) 16%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--ui-panel) 86%, transparent);
+}
+
+.drawing-block.is-active {
+  border-color: color-mix(in srgb, var(--ui-fg) 45%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-fg) 12%, transparent);
+}
+
+.drawing-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.drawing-block-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.drawing-block-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .config-kicker {
   margin: 0;
   text-transform: uppercase;

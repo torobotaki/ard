@@ -16,6 +16,9 @@ let smoothedTreble = 0;
 let smoothedLevel = 0;
 
 let modes = [];
+let drawingInstances = [];
+let activeDrawingIndex = 0;
+let nextDrawingId = 1;
 let currentModeIndex = 0;
 let overlayEl;
 let overlayStatusEl;
@@ -27,7 +30,6 @@ let themePanelEl;
 let themeContentEl;
 let helpPanelEl;
 let uiHintEl;
-let pickModeEl;
 let startAudioButtons = [];
 let statusFlash = "";
 let statusFlashUntil = 0;
@@ -39,6 +41,9 @@ let fullscreenActive = false;
 let hideUiAt = 0;
 let sectionOpenState = { global: true, color: false, current: false, theme: true };
 let currentFavorites = new Set();
+let globalConfig;
+let globalAudioRouting;
+let presetAudioRouting;
 
 const PI_VALUE = Math.PI;
 const HALF_PI_VALUE = Math.PI / 2;
@@ -72,11 +77,10 @@ const PALETTES_UI = {
   custom: { label: "Custom", bg: "#013abb", stroke: "#f7eb23", accent: "#ffffff" },
 };
 
-let globalConfig = {
+const DEFAULT_DRAWING_CONFIG = {
   size: 1,
   opacity: 1,
   speed: 1,
-  micSensitivity: 1.2,
   placeX: 0,
   placeY: 0,
   drawColor: "#f7eb23",
@@ -94,7 +98,11 @@ let themeConfig = {
   hoverColor: "rgba(111, 255, 233, 0.18)",
 };
 
-let globalAudioRouting = {
+let appConfig = {
+  micSensitivity: 1.2,
+};
+
+const DEFAULT_AUDIO_ROUTING = {
   mode: "multiple",
   size: { source: "bass", amount: 0.35 },
   speed: { source: "level", amount: 0.55 },
@@ -102,9 +110,8 @@ let globalAudioRouting = {
   color: { source: "treble", amount: 0.35 },
 };
 
-let presetAudioRouting = {};
-let initialGlobalConfig;
-let initialGlobalAudioRouting;
+let initialDrawingConfig;
+let initialDrawingAudioRouting;
 let initialPresetByDrawing = {};
 
 const CATEGORY_WEIGHTS = {
@@ -329,9 +336,10 @@ function setup() {
   buildModes();
   loadTheme();
   applyPalettePreset(themeConfig.palette);
-  syncDrawingColorsToTheme(true);
   captureInitialState();
   loadFavorites();
+  drawingInstances = [createDrawingInstance(pickWeightedModeIndex())];
+  setActiveDrawingInstance(0);
   setupUi();
   fullscreenActive = !!fullscreen();
   document.addEventListener("fullscreenchange", () => {
@@ -346,9 +354,13 @@ function draw() {
   background(BG_COLOR);
 
   let metrics = getSignalMetrics();
+  let savedActive = activeDrawingIndex;
+  for (let i = 0; i < drawingInstances.length; i++) {
+    renderDrawingInstance(i, metrics);
+  }
+  setActiveDrawingInstance(savedActive);
   let mode = modes[currentModeIndex];
-  renderMode(mode, metrics);
-  if (chromeVisible) drawHud(mode, metrics);
+  if (chromeVisible && mode) drawHud(mode, metrics);
   updateUiHint();
 }
 
@@ -375,8 +387,6 @@ function buildModes() {
   addPresetModes("d3structures", "D3STRUCTURES", D3STRUCTURES_C_PRESETS, renderD3StructureC);
   addPresetModes("d3structures", "D3STRUCTURES", D3STRUCTURES_D_PRESETS, renderD3StructureD);
   modes.sort((a, b) => a.drawing - b.drawing || a.label.localeCompare(b.label));
-
-  currentModeIndex = pickWeightedModeIndex();
 }
 
 function addPresetModes(category, label, presets, renderer) {
@@ -393,6 +403,63 @@ function addPresetModes(category, label, presets, renderer) {
   }
 }
 
+function cloneData(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function createDrawingInstance(modeIndex) {
+  let instance = {
+    id: nextDrawingId++,
+    modeIndex: modeIndex,
+    layout: "overlay",
+    config: cloneData(initialDrawingConfig),
+    audioRouting: cloneData(initialDrawingAudioRouting),
+    presetAudioRouting: {},
+    presetByDrawing: cloneData(initialPresetByDrawing),
+  };
+  syncDrawingColorsToTheme(true, instance);
+  return instance;
+}
+
+function setInstanceContext(instance) {
+  if (!instance) return;
+  currentModeIndex = instance.modeIndex;
+  globalConfig = instance.config;
+  globalAudioRouting = instance.audioRouting;
+  presetAudioRouting = instance.presetAudioRouting;
+}
+
+function setActiveDrawingInstance(index) {
+  activeDrawingIndex = constrain(index, 0, max(0, drawingInstances.length - 1));
+  setInstanceContext(drawingInstances[activeDrawingIndex]);
+}
+
+function getActiveDrawingInstance() {
+  return drawingInstances[activeDrawingIndex];
+}
+
+function renderDrawingInstance(index, metrics) {
+  let instance = drawingInstances[index];
+  if (!instance) return;
+  setInstanceContext(instance);
+  let mode = modes[instance.modeIndex];
+  if (!mode) return;
+
+  push();
+  applyDrawingLayoutTransform(instance);
+  renderMode({ ...mode, preset: instance.presetByDrawing[mode.drawing] }, metrics);
+  pop();
+}
+
+function applyDrawingLayoutTransform(instance) {
+  if (instance.layout === "left" || instance.layout === "right") {
+    let offset = instance.layout === "left" ? -width * 0.24 : width * 0.24;
+    translate(width * 0.5 + offset, height * 0.5);
+    scale(0.48);
+    translate(-width * 0.5, -height * 0.5);
+  }
+}
+
 function setupUi() {
   overlayEl = document.getElementById("start-overlay");
   overlayStatusEl = document.getElementById("overlay-status");
@@ -404,7 +471,6 @@ function setupUi() {
   themeContentEl = document.getElementById("theme-content");
   helpPanelEl = document.getElementById("help-panel");
   uiHintEl = document.getElementById("ui-hint");
-  pickModeEl = document.getElementById("pick-mode");
   startAudioButtons = [
     document.getElementById("start-audio"),
     document.getElementById("overlay-start"),
@@ -420,11 +486,6 @@ function setupUi() {
   document.getElementById("next-mode").addEventListener("click", () => nextMode());
   document.getElementById("previous-mode").addEventListener("click", () => previousMode());
   document.getElementById("random-mode").addEventListener("click", () => randomMode());
-  pickModeEl.addEventListener("change", () => {
-    currentModeIndex = Number(pickModeEl.value);
-    renderConfigPanel();
-    flashStatus("Picked: " + modes[currentModeIndex].label);
-  });
   document.getElementById("show-config").addEventListener("click", () => {
     if (!chromeVisible) {
       chromeVisible = true;
@@ -469,9 +530,7 @@ function setupUi() {
   document.getElementById("reset-config").addEventListener("click", () => {
     resetConfig();
   });
-  document.getElementById("toggle-favorite").addEventListener("click", () => {
-    toggleFavorite();
-  });
+  document.getElementById("add-drawing").addEventListener("click", () => addDrawing());
   document.getElementById("overlay-dismiss").addEventListener("click", () => {
     hideOverlay();
     flashStatus("Running without microphone");
@@ -482,25 +541,9 @@ function setupUi() {
       ? "Ready to request microphone access."
       : "This page is not in a secure context. Use http://localhost or https."
   );
-  renderModePicker();
   renderConfigPanel();
   renderThemePanel();
   applyChromeVisibility();
-}
-
-function renderModePicker() {
-  if (!pickModeEl) return;
-  pickModeEl.innerHTML = modes
-    .map((mode, index) => {
-      let heart = currentFavorites.has(mode.drawing) ? "♥ " : "";
-      return `<option value="${index}">${heart}${mode.drawing}. ${mode.label}</option>`;
-    })
-    .join("");
-  syncModePicker();
-}
-
-function syncModePicker() {
-  if (pickModeEl) pickModeEl.value = String(currentModeIndex);
 }
 
 function renderMode(mode, metrics) {
@@ -1492,22 +1535,28 @@ function handleWindowKeyDown(event) {
 }
 
 function nextMode() {
-  currentModeIndex = (currentModeIndex + 1) % modes.length;
-  syncModePicker();
+  let instance = getActiveDrawingInstance();
+  if (!instance) return;
+  instance.modeIndex = (instance.modeIndex + 1) % modes.length;
+  setActiveDrawingInstance(activeDrawingIndex);
   flashStatus("Mode: " + modes[currentModeIndex].label);
   renderConfigPanel();
 }
 
 function previousMode() {
-  currentModeIndex = (currentModeIndex - 1 + modes.length) % modes.length;
-  syncModePicker();
+  let instance = getActiveDrawingInstance();
+  if (!instance) return;
+  instance.modeIndex = (instance.modeIndex - 1 + modes.length) % modes.length;
+  setActiveDrawingInstance(activeDrawingIndex);
   flashStatus("Mode: " + modes[currentModeIndex].label);
   renderConfigPanel();
 }
 
 function randomMode() {
-  currentModeIndex = pickWeightedModeIndex();
-  syncModePicker();
+  let instance = getActiveDrawingInstance();
+  if (!instance) return;
+  instance.modeIndex = pickWeightedModeIndex();
+  setActiveDrawingInstance(activeDrawingIndex);
   flashStatus("Random: " + modes[currentModeIndex].label);
   renderConfigPanel();
 }
@@ -1565,11 +1614,11 @@ function flashStatus(message) {
 }
 
 function captureInitialState() {
-  initialGlobalConfig = JSON.parse(JSON.stringify(globalConfig));
-  initialGlobalAudioRouting = JSON.parse(JSON.stringify(globalAudioRouting));
+  initialDrawingConfig = cloneData(DEFAULT_DRAWING_CONFIG);
+  initialDrawingAudioRouting = cloneData(DEFAULT_AUDIO_ROUTING);
   initialPresetByDrawing = {};
   for (let mode of modes) {
-    initialPresetByDrawing[mode.drawing] = JSON.parse(JSON.stringify(mode.preset));
+    initialPresetByDrawing[mode.drawing] = cloneData(mode.preset);
   }
 }
 
@@ -1605,26 +1654,27 @@ function saveFavorites() {
 }
 
 function toggleFavorite() {
-  let drawing = modes[currentModeIndex].drawing;
+  let instance = getActiveDrawingInstance();
+  if (!instance) return;
+  let drawing = modes[instance.modeIndex].drawing;
   if (currentFavorites.has(drawing)) currentFavorites.delete(drawing);
   else currentFavorites.add(drawing);
   saveFavorites();
-  renderModePicker();
   renderConfigPanel();
-  syncModePicker();
   flashStatus(currentFavorites.has(drawing) ? "Favorited" : "Unfavorited");
 }
 
 function resetConfig() {
-  globalConfig = JSON.parse(JSON.stringify(initialGlobalConfig));
-  globalAudioRouting = JSON.parse(JSON.stringify(initialGlobalAudioRouting));
-  presetAudioRouting = {};
-  for (let mode of modes) {
-    Object.assign(mode.preset, JSON.parse(JSON.stringify(initialPresetByDrawing[mode.drawing])));
-  }
-  syncDrawingColorsToTheme(true);
+  let instance = getActiveDrawingInstance();
+  if (!instance) return;
+  instance.config = cloneData(initialDrawingConfig);
+  instance.audioRouting = cloneData(initialDrawingAudioRouting);
+  instance.presetAudioRouting = {};
+  instance.presetByDrawing = cloneData(initialPresetByDrawing);
+  syncDrawingColorsToTheme(true, instance);
+  setActiveDrawingInstance(activeDrawingIndex);
   renderConfigPanel();
-  flashStatus("Config reset");
+  flashStatus("Active drawing reset");
 }
 
 function updateOverlayStatus(message) {
@@ -1652,10 +1702,10 @@ function getSignalMetrics() {
     analyser.getByteFrequencyData(freqData);
     analyser.getByteTimeDomainData(timeData);
 
-    let bass = averageBand(20, 140) * globalConfig.micSensitivity;
-    let mid = averageBand(140, 1600) * globalConfig.micSensitivity;
-    let treble = averageBand(1600, 6400) * globalConfig.micSensitivity;
-    let level = waveformLevel() * globalConfig.micSensitivity;
+    let bass = averageBand(20, 140) * appConfig.micSensitivity;
+    let mid = averageBand(140, 1600) * appConfig.micSensitivity;
+    let treble = averageBand(1600, 6400) * appConfig.micSensitivity;
+    let level = waveformLevel() * appConfig.micSensitivity;
 
     smoothedBass = lerp(smoothedBass, bass, 0.16);
     smoothedMid = lerp(smoothedMid, mid, 0.14);
@@ -1757,15 +1807,43 @@ function applyPalettePreset(name) {
   themeConfig.panelColor = name === "abyss" ? "rgba(28, 37, 65, 0.84)" : "rgba(1, 22, 80, 0.8)";
   themeConfig.controlColor = name === "abyss" ? "rgba(58, 80, 107, 0.84)" : "rgba(1, 58, 187, 0.72)";
   themeConfig.hoverColor = name === "abyss" ? "rgba(111, 255, 233, 0.18)" : "rgba(247, 235, 35, 0.15)";
-  if (globalConfig.drawColor === previousStroke) globalConfig.drawColor = themeConfig.strokeColor;
-  if (globalConfig.audioAccentColor === previousAccent) globalConfig.audioAccentColor = themeConfig.accentColor;
+  for (let instance of drawingInstances) {
+    if (instance.config.drawColor === previousStroke) instance.config.drawColor = themeConfig.strokeColor;
+    if (instance.config.audioAccentColor === previousAccent) instance.config.audioAccentColor = themeConfig.accentColor;
+  }
   saveTheme();
   renderThemePanel();
 }
 
-function syncDrawingColorsToTheme(force) {
-  if (force || !globalConfig.drawColor) globalConfig.drawColor = themeConfig.strokeColor;
-  if (force || !globalConfig.audioAccentColor) globalConfig.audioAccentColor = themeConfig.accentColor;
+function syncDrawingColorsToTheme(force, instance = null) {
+  let target = instance || getActiveDrawingInstance();
+  if (!target) return;
+  if (force || !target.config.drawColor) target.config.drawColor = themeConfig.strokeColor;
+  if (force || !target.config.audioAccentColor) target.config.audioAccentColor = themeConfig.accentColor;
+}
+
+function addDrawing() {
+  let instance = createDrawingInstance(pickWeightedModeIndex());
+  if (drawingInstances.length === 1 && drawingInstances[0].layout === "overlay") {
+    drawingInstances[0].layout = "left";
+    instance.layout = "right";
+  } else if (drawingInstances.some((entry) => entry.layout === "left") && !drawingInstances.some((entry) => entry.layout === "right")) {
+    instance.layout = "right";
+  }
+  drawingInstances.push(instance);
+  setActiveDrawingInstance(drawingInstances.length - 1);
+  renderConfigPanel();
+  flashStatus("Drawing added");
+}
+
+function removeDrawing(index) {
+  if (drawingInstances.length <= 1) return;
+  drawingInstances.splice(index, 1);
+  if (drawingInstances.length === 1) drawingInstances[0].layout = "overlay";
+  if (activeDrawingIndex >= drawingInstances.length) activeDrawingIndex = drawingInstances.length - 1;
+  setActiveDrawingInstance(activeDrawingIndex);
+  renderConfigPanel();
+  flashStatus("Drawing removed");
 }
 
 function toggleFullscreen() {
@@ -1776,74 +1854,26 @@ function toggleFullscreen() {
 
 function renderConfigPanel() {
   if (!configContentEl) return;
-  let mode = modes[currentModeIndex];
-  if (!mode) return;
+  let savedActive = activeDrawingIndex;
+  let html = `
+    <section class="config-section">
+      <div class="config-row">
+        <label for="app-micSensitivity">Mic Sensitivity</label>
+        <span id="value-app-micSensitivity" class="config-value">${formatValue("micSensitivity", appConfig.micSensitivity)}</span>
+        <input id="app-micSensitivity" data-app-key="micSensitivity" type="range" min="0" max="10" step="0.01" value="${appConfig.micSensitivity}">
+      </div>
+    </section>
+  `;
 
-  let html = "";
-  html += renderSection("global", "General", [
-    makeSliderControl("size", "Scale", globalConfig.size, 0.05, 3, 0.01, "percent"),
-    makeSliderControl("opacity", "Opacity", globalConfig.opacity, 0, 1, 0.01),
-    makeSliderControl("speed", "Animation Rate", globalConfig.speed, 0.2, 2.5, 0.01),
-    makeSliderControl("micSensitivity", "Mic Sensitivity", globalConfig.micSensitivity, 0, 10, 0.01),
-    makeSliderControl("placeX", "Placement X", globalConfig.placeX, -1, 1, 0.01),
-    makeSliderControl("placeY", "Placement Y", globalConfig.placeY, -1, 1, 0.01),
-    makeSelectControl(
-      "mode",
-      "Audio Source",
-      globalAudioRouting.mode,
-      [
-        { value: "level", label: "Full Range" },
-        { value: "bass", label: "Bass" },
-        { value: "mid", label: "Mid" },
-        { value: "treble", label: "Treble" },
-        { value: "multiple", label: "Multiple" },
-      ]
-    ),
-    ...(globalAudioRouting.mode === "multiple"
-      ? [
-          makeAudioRouteControls("global", "size", "Size Audio", globalAudioRouting.size),
-          makeAudioRouteControls("global", "speed", "Speed Audio", globalAudioRouting.speed),
-          makeAudioRouteControls("global", "detail", "Detail Audio", globalAudioRouting.detail),
-        ]
-      : []),
-  ]);
-  html += renderSection("color", "Color", [
-    makeColorControl("drawColor", "Drawing", globalConfig.drawColor),
-    makeColorControl("audioAccentColor", "Audio Accent", globalConfig.audioAccentColor),
-    ...(globalAudioRouting.mode !== "multiple"
-      ? [
-          makeSelectControl(
-            "colorSource",
-            "Audio Source",
-            globalAudioRouting.color.source,
-            [
-              { value: "level", label: "Full Range" },
-              { value: "bass", label: "Bass" },
-              { value: "mid", label: "Mid" },
-              { value: "treble", label: "Treble" },
-            ]
-          ),
-        ]
-      : []),
-    makeSelectControl(
-      "colorMode",
-      "Color Mode",
-      globalConfig.colorMode,
-      [
-        { value: "palette_audio", label: "Palette Audio" },
-        { value: "static", label: "Static" },
-      ]
-    ),
-    makeAudioRouteControls("global", "color", "Color Audio", globalAudioRouting.color),
-  ]);
-  html += renderSection("current", "Advanced", buildPresetControls(mode.preset));
+  for (let i = 0; i < drawingInstances.length; i++) {
+    html += renderDrawingConfigBlock(i);
+  }
 
   configContentEl.innerHTML = html;
-  bindGlobalControls();
-  bindPresetControls(mode.preset);
-  bindAudioRouteControls(mode.drawing);
+  bindAppControls();
+  bindInstanceControls();
   bindSectionToggles();
-  updateFavoriteButton();
+  setActiveDrawingInstance(savedActive);
 }
 
 function renderThemePanel() {
@@ -1874,17 +1904,12 @@ function renderThemePanel() {
   bindThemeControls();
 }
 
-function updateFavoriteButton() {
-  let button = document.getElementById("toggle-favorite");
-  if (!button) return;
-  let isFavorite = currentFavorites.has(modes[currentModeIndex].drawing);
-  button.textContent = isFavorite ? "♥ Favorite" : "♡ Favorite";
-}
-
-function bindGlobalControls() {
-  configContentEl.querySelectorAll("[data-global-key]").forEach((el) => {
+function bindAppControls() {
+  configContentEl.querySelectorAll("[data-app-key]").forEach((el) => {
     let handler = () => {
-      updateGlobalConfigFromInput(el);
+      let key = el.dataset.appKey;
+      appConfig[key] = Number(el.value);
+      updateValueText("value-app-" + key, key, appConfig[key]);
     };
     el.addEventListener("input", handler);
     el.addEventListener("change", handler);
@@ -1901,49 +1926,77 @@ function bindThemeControls() {
   });
 }
 
-function bindPresetControls(preset) {
-  configContentEl.querySelectorAll("[data-preset-key]").forEach((el) => {
-      let handler = () => {
-        let key = el.dataset.presetKey;
-        preset[key] = Number(el.value);
-        updateValueText("value-preset-" + key, key, preset[key]);
-      };
-    el.addEventListener("input", handler);
-    el.addEventListener("change", handler);
-  });
-}
-
-function bindAudioRouteControls(drawing) {
-  configContentEl.querySelectorAll("[data-audio-scope]").forEach((el) => {
+function bindInstanceControls() {
+  configContentEl.querySelectorAll("[data-instance-index]").forEach((el) => {
     let handler = () => {
-      let scope = el.dataset.audioScope;
-      let key = el.dataset.audioKey;
-      let field = el.dataset.audioField;
-      let route = scope === "global" ? globalAudioRouting[key] : getPresetRoute(drawing, key);
-      route[field] = field === "amount" ? Number(el.value) : el.value;
-      updateValueText(`value-audio-${scope}-${key}-${field}`, field === "amount" ? key : field, route[field]);
+      let instanceIndex = Number(el.dataset.instanceIndex);
+      let instance = drawingInstances[instanceIndex];
+      if (!instance) return;
+      setActiveDrawingInstance(instanceIndex);
+
+      if (el.dataset.instanceAction === "activate") {
+        renderConfigPanel();
+        return;
+      }
+      if (el.dataset.instanceAction === "favorite") {
+        toggleFavorite();
+        return;
+      }
+      if (el.dataset.instanceAction === "remove") {
+        removeDrawing(instanceIndex);
+        return;
+      }
+      if (el.dataset.instanceModeIndex) {
+        instance.modeIndex = Number(el.value);
+        setActiveDrawingInstance(instanceIndex);
+        renderConfigPanel();
+        flashStatus("Picked: " + modes[instance.modeIndex].label);
+        return;
+      }
+      if (el.dataset.instanceLayout) {
+        instance.layout = el.value;
+        flashStatus("Layout: " + el.value);
+        return;
+      }
+      if (el.dataset.instanceGlobalKey) {
+        let key = el.dataset.instanceGlobalKey;
+        let value = el.type === "range" ? Number(el.value) : el.value;
+        if (key === "mode") {
+          instance.audioRouting.mode = value;
+          if (value !== "multiple") instance.audioRouting.color.source = value;
+          renderConfigPanel();
+          return;
+        }
+        if (key === "colorSource") {
+          instance.audioRouting.color.source = value;
+          renderConfigPanel();
+          return;
+        }
+        instance.config[key] = value;
+        updateValueText(el.dataset.valueId, key, value);
+        return;
+      }
+      if (el.dataset.instancePresetKey) {
+        let mode = modes[instance.modeIndex];
+        let key = el.dataset.instancePresetKey;
+        instance.presetByDrawing[mode.drawing][key] = Number(el.value);
+        updateValueText(el.dataset.valueId, key, instance.presetByDrawing[mode.drawing][key]);
+        return;
+      }
+      if (el.dataset.instanceAudioScope) {
+        let mode = modes[instance.modeIndex];
+        let key = el.dataset.instanceAudioKey;
+        let field = el.dataset.instanceAudioField;
+        let route = el.dataset.instanceAudioScope === "global"
+          ? instance.audioRouting[key]
+          : getPresetRoute(mode.drawing, key);
+        route[field] = field === "amount" ? Number(el.value) : el.value;
+        updateValueText(el.dataset.valueId, field === "amount" ? key : field, route[field]);
+      }
     };
     el.addEventListener("input", handler);
     el.addEventListener("change", handler);
   });
-}
-
-function updateGlobalConfigFromInput(el) {
-  let key = el.dataset.globalKey;
-  let value = el.type === "checkbox" ? el.checked : el.type === "range" ? Number(el.value) : el.value;
-  if (key === "mode") {
-    globalAudioRouting.mode = value;
-    if (value !== "multiple") globalAudioRouting.color.source = value;
-    renderConfigPanel();
-    return;
-  }
-  if (key === "colorSource") {
-    globalAudioRouting.color.source = value;
-    renderConfigPanel();
-    return;
-  }
-  globalConfig[key] = value;
-  updateValueText("value-global-" + key, key, value);
 }
 
 function updateThemeConfigFromInput(el) {
@@ -1999,6 +2052,48 @@ function renderSection(sectionKey, title, rows) {
   `;
 }
 
+function renderDrawingConfigBlock(instanceIndex) {
+  let instance = drawingInstances[instanceIndex];
+  if (!instance) return "";
+  setInstanceContext(instance);
+  let mode = modes[instance.modeIndex];
+  if (!mode) return "";
+  let isFavorite = currentFavorites.has(mode.drawing);
+  let removeButton = drawingInstances.length > 1
+    ? `<button class="control-button control-button-small" type="button" data-instance-index="${instanceIndex}" data-instance-action="remove">Remove</button>`
+    : "";
+
+  return `
+    <section class="drawing-block ${instanceIndex === activeDrawingIndex ? "is-active" : ""}">
+      <div class="drawing-block-head">
+        <div class="drawing-block-title">Drawing ${instanceIndex + 1}</div>
+        <div class="drawing-block-actions">
+          <button class="control-button control-button-small ${instanceIndex === activeDrawingIndex ? "is-active" : ""}" type="button" data-instance-index="${instanceIndex}" data-instance-action="activate">Active</button>
+          <button class="control-button control-button-small" type="button" data-instance-index="${instanceIndex}" data-instance-action="favorite">${isFavorite ? "♥ Favorite" : "♡ Favorite"}</button>
+          ${removeButton}
+        </div>
+      </div>
+      <div class="config-row">
+        <label for="instance-${instanceIndex}-mode">Drawing</label>
+        <select id="instance-${instanceIndex}-mode" data-instance-index="${instanceIndex}" data-instance-mode-index="1">
+          ${modes.map((entry, index) => `<option value="${index}" ${index === instance.modeIndex ? "selected" : ""}>${currentFavorites.has(entry.drawing) ? "♥ " : ""}${entry.drawing}. ${entry.label}</option>`).join("")}
+        </select>
+      </div>
+      <div class="config-row">
+        <label for="instance-${instanceIndex}-layout">Layout</label>
+        <select id="instance-${instanceIndex}-layout" data-instance-index="${instanceIndex}" data-instance-layout="1">
+          <option value="overlay" ${instance.layout === "overlay" ? "selected" : ""}>Overlay</option>
+          <option value="left" ${instance.layout === "left" ? "selected" : ""}>Left</option>
+          <option value="right" ${instance.layout === "right" ? "selected" : ""}>Right</option>
+        </select>
+      </div>
+      ${renderSection(`global-${instance.id}`, "General", buildInstanceGeneralControls(instanceIndex))}
+      ${renderSection(`color-${instance.id}`, "Color", buildInstanceColorControls(instanceIndex))}
+      ${renderSection(`current-${instance.id}`, "Advanced", buildPresetControls(instanceIndex, instance.presetByDrawing[mode.drawing], mode.drawing))}
+    </section>
+  `;
+}
+
 function bindSectionToggles() {
   configContentEl.querySelectorAll("[data-section-key]").forEach((el) => {
     el.addEventListener("toggle", () => {
@@ -2007,16 +2102,86 @@ function bindSectionToggles() {
   });
 }
 
-function buildPresetControls(preset) {
+function buildInstanceGeneralControls(instanceIndex) {
+  let instance = drawingInstances[instanceIndex];
+  setInstanceContext(instance);
+  return [
+    makeInstanceSliderControl(instanceIndex, "size", "Scale", globalConfig.size, 0.05, 3, 0.01, "percent"),
+    makeInstanceSliderControl(instanceIndex, "opacity", "Opacity", globalConfig.opacity, 0, 1, 0.01),
+    makeInstanceSliderControl(instanceIndex, "speed", "Animation Rate", globalConfig.speed, 0.2, 2.5, 0.01),
+    makeInstanceSliderControl(instanceIndex, "placeX", "Placement X", globalConfig.placeX, -1, 1, 0.01),
+    makeInstanceSliderControl(instanceIndex, "placeY", "Placement Y", globalConfig.placeY, -1, 1, 0.01),
+    makeInstanceSelectControl(
+      instanceIndex,
+      "mode",
+      "Audio Source",
+      globalAudioRouting.mode,
+      [
+        { value: "level", label: "Full Range" },
+        { value: "bass", label: "Bass" },
+        { value: "mid", label: "Mid" },
+        { value: "treble", label: "Treble" },
+        { value: "multiple", label: "Multiple" },
+      ]
+    ),
+    ...(globalAudioRouting.mode === "multiple"
+      ? [
+          makeInstanceAudioRouteControls(instanceIndex, "global", "size", "Size Audio", globalAudioRouting.size),
+          makeInstanceAudioRouteControls(instanceIndex, "global", "speed", "Speed Audio", globalAudioRouting.speed),
+          makeInstanceAudioRouteControls(instanceIndex, "global", "detail", "Detail Audio", globalAudioRouting.detail),
+        ]
+      : []),
+  ];
+}
+
+function buildInstanceColorControls(instanceIndex) {
+  let instance = drawingInstances[instanceIndex];
+  setInstanceContext(instance);
+  return [
+    makeInstanceColorControl(instanceIndex, "drawColor", "Drawing", globalConfig.drawColor),
+    makeInstanceColorControl(instanceIndex, "audioAccentColor", "Audio Accent", globalConfig.audioAccentColor),
+    ...(globalAudioRouting.mode !== "multiple"
+      ? [
+          makeInstanceSelectControl(
+            instanceIndex,
+            "colorSource",
+            "Audio Source",
+            globalAudioRouting.color.source,
+            [
+              { value: "level", label: "Full Range" },
+              { value: "bass", label: "Bass" },
+              { value: "mid", label: "Mid" },
+              { value: "treble", label: "Treble" },
+            ]
+          ),
+        ]
+      : []),
+    makeInstanceSelectControl(
+      instanceIndex,
+      "colorMode",
+      "Color Mode",
+      globalConfig.colorMode,
+      [
+        { value: "palette_audio", label: "Palette Audio" },
+        { value: "static", label: "Static" },
+      ]
+    ),
+    makeInstanceAudioRouteControls(instanceIndex, "global", "color", "Color Audio", globalAudioRouting.color),
+  ];
+}
+
+function buildPresetControls(instanceIndex, preset, drawing) {
+  let instance = drawingInstances[instanceIndex];
+  setInstanceContext(instance);
   return Object.keys(preset)
     .filter((key) => typeof preset[key] === "number")
     .sort()
     .map((key) => {
       let range = inferRange(key, preset[key]);
-      let route = getPresetRoute(modes[currentModeIndex].drawing, key);
-  let controls = makePresetSliderControl(key, key, preset[key], range.min, range.max, range.step);
+      let route = getPresetRoute(drawing, key);
+      let controls = makeInstancePresetSliderControl(instanceIndex, key, key, preset[key], range.min, range.max, range.step);
       if (!GLOBAL_ROUTE_KEYS.has(key)) {
-        controls += makeAudioRouteControls("preset", key, key + " Audio", route);
+        controls += makeInstanceAudioRouteControls(instanceIndex, "preset", key, key + " Audio", route);
       }
       return controls;
     });
@@ -2053,28 +2218,41 @@ function makeSliderControl(key, label, value, min, max, step, format = "", scope
   `;
 }
 
-function makePresetSliderControl(key, label, value, min, max, step) {
+function makeInstanceSliderControl(instanceIndex, key, label, value, min, max, step, format = "") {
+  let valueId = `value-instance-${instanceIndex}-global-${key}`;
   return `
     <div class="config-row">
-      <label for="preset-${key}">${label}</label>
-      <span id="value-preset-${key}" class="config-value">${formatValue(key, value)}</span>
-      <input id="preset-${key}" data-preset-key="${key}" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
+      <label for="instance-${instanceIndex}-global-${key}">${label}</label>
+      <span id="${valueId}" class="config-value">${formatValue(key, value, format)}</span>
+      <input id="instance-${instanceIndex}-global-${key}" data-instance-index="${instanceIndex}" data-instance-global-key="${key}" data-value-id="${valueId}" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
     </div>
   `;
 }
 
-function makeAudioRouteControls(scope, key, label, route) {
+function makeInstancePresetSliderControl(instanceIndex, key, label, value, min, max, step) {
+  let valueId = `value-instance-${instanceIndex}-preset-${key}`;
   return `
     <div class="config-row">
-      <label for="audio-${scope}-${key}-source">${label} Source</label>
-      <select id="audio-${scope}-${key}-source" data-audio-scope="${scope}" data-audio-key="${key}" data-audio-field="source">
+      <label for="instance-${instanceIndex}-preset-${key}">${label}</label>
+      <span id="${valueId}" class="config-value">${formatValue(key, value)}</span>
+      <input id="instance-${instanceIndex}-preset-${key}" data-instance-index="${instanceIndex}" data-instance-preset-key="${key}" data-value-id="${valueId}" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
+    </div>
+  `;
+}
+
+function makeInstanceAudioRouteControls(instanceIndex, scope, key, label, route) {
+  let valueId = `value-instance-${instanceIndex}-audio-${scope}-${key}-amount`;
+  return `
+    <div class="config-row">
+      <label for="audio-${instanceIndex}-${scope}-${key}-source">${label} Source</label>
+      <select id="audio-${instanceIndex}-${scope}-${key}-source" data-instance-index="${instanceIndex}" data-instance-audio-scope="${scope}" data-instance-audio-key="${key}" data-instance-audio-field="source" data-value-id="${valueId}">
         ${AUDIO_SOURCE_OPTIONS.map((option) => `<option value="${option.value}" ${option.value === route.source ? "selected" : ""}>${option.label}</option>`).join("")}
       </select>
     </div>
     <div class="config-row">
-      <label for="audio-${scope}-${key}-amount">${label} Sensitivity</label>
-      <span id="value-audio-${scope}-${key}-amount" class="config-value">${formatValue(key, route.amount)}</span>
-      <input id="audio-${scope}-${key}-amount" data-audio-scope="${scope}" data-audio-key="${key}" data-audio-field="amount" type="range" min="0" max="10" step="0.01" value="${route.amount}">
+      <label for="audio-${instanceIndex}-${scope}-${key}-amount">${label} Sensitivity</label>
+      <span id="${valueId}" class="config-value">${formatValue(key, route.amount)}</span>
+      <input id="audio-${instanceIndex}-${scope}-${key}-amount" data-instance-index="${instanceIndex}" data-instance-audio-scope="${scope}" data-instance-audio-key="${key}" data-instance-audio-field="amount" data-value-id="${valueId}" type="range" min="0" max="10" step="0.01" value="${route.amount}">
     </div>
   `;
 }
@@ -2085,6 +2263,27 @@ function makeColorControl(key, label, value, scope = "global") {
     <div class="config-row">
       <label for="${scope}-${key}">${label}</label>
       <input id="${scope}-${key}" ${dataKey}="${key}" type="color" value="${value}">
+    </div>
+  `;
+}
+
+function makeInstanceColorControl(instanceIndex, key, label, value) {
+  return `
+    <div class="config-row">
+      <label for="instance-${instanceIndex}-global-${key}">${label}</label>
+      <input id="instance-${instanceIndex}-global-${key}" data-instance-index="${instanceIndex}" data-instance-global-key="${key}" type="color" value="${value}">
+    </div>
+  `;
+}
+
+function makeInstanceSelectControl(instanceIndex, key, label, value, options) {
+  let optionsHtml = options
+    .map((option) => `<option value="${option.value}" ${option.value === value ? "selected" : ""}>${option.label}</option>`)
+    .join("");
+  return `
+    <div class="config-row">
+      <label for="instance-${instanceIndex}-global-${key}">${label}</label>
+      <select id="instance-${instanceIndex}-global-${key}" data-instance-index="${instanceIndex}" data-instance-global-key="${key}">${optionsHtml}</select>
     </div>
   `;
 }
