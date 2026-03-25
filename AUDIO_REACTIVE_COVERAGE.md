@@ -13,8 +13,7 @@ This file tracks which original Delahaye sketch families fit the current audio-r
 
 | Drawings | Family | Supported | Tier | Notes |
 | --- | --- | --- | --- | --- |
-| 1-6 | Polygones reguliers | No | 3 | Strong geometric family, but not yet integrated into the master runtime. |
-| 7-12 | Etoiles regulieres | No | 3 | Similar fit to the polygon family, but still pending. |
+| 1-12 | Polygones / Etoiles reguliers | Yes | 3 | Integrated into the master as simple animated polygon and star modes. |
 | 14-19 | Composition 1 | Yes | 1 | Integrated into the master sketch. |
 | 20-25 | Composition 2 | Yes | 1 | Integrated into the master sketch. |
 | 26-33 | Joligones | No | 3 | Likely possible, but not yet routed into the current UI. |
@@ -30,7 +29,7 @@ This file tracks which original Delahaye sketch families fit the current audio-r
 | 87-92 | Courbes tournantes | Yes | 1 | Integrated into the master. |
 | 93-96 | Courbes tournantes | Yes | 1 | Integrated into the master. |
 | 97-100 | Courbes spirales | Yes | 2 | Tier 2 family integrated into the master. |
-| 101-104 | Biparti complet | No | 3 | Potentially workable, but needs UX judgment. |
+| 101-104 | Biparti complet | Yes | 3 | Integrated into the master. |
 | 105-109 | Lineaires modulo | Yes | 1 | Favorites plus the remaining family variant are integrated into the master. |
 | 110-114 | Lineaires batons | Yes | 1 | Integrated into the master. |
 | 114-135 | Fractales simples | No | 4 | Fractal family; not yet a good fit for the current panel and routing model. |

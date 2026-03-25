@@ -74,6 +74,9 @@ let themeConfig = {
   bgColor: "#013abb",
   strokeColor: "#f7eb23",
   accentColor: "#ffffff",
+  panelColor: "rgba(1, 22, 80, 0.8)",
+  controlColor: "rgba(1, 58, 187, 0.72)",
+  hoverColor: "rgba(247, 235, 35, 0.15)",
 };
 
 let globalAudioRouting = {
@@ -96,9 +99,22 @@ const CATEGORY_WEIGHTS = {
   batons: 5,
   elastic: 5,
   d3structures: 7,
+  biparti: 4,
 };
 
 const COMPOSITION1_PRESETS = {
+  1: { K: 3, R: 0.45, H: 1, AD: 0 },
+  2: { K: 4, R: 0.45, H: 1, AD: 0 },
+  3: { K: 3, R: 0.45, H: 1, AD: HALF_PI_VALUE },
+  4: { K: 5, R: 0.45, H: 1, AD: HALF_PI_VALUE },
+  5: { K: 8, R: 0.5, H: 1, AD: PI_VALUE / 8 },
+  6: { K: 20, R: 0.4, H: 1, AD: 0 },
+  7: { K: 5, R: 0.45, H: 3, AD: HALF_PI_VALUE },
+  8: { K: 7, R: 0.45, H: 3, AD: HALF_PI_VALUE },
+  9: { K: 20, R: 0.45, H: 9, AD: HALF_PI_VALUE },
+  10: { K: 20, R: 0.45, H: 7, AD: HALF_PI_VALUE },
+  11: { K: 51, R: 0.45, H: 20, AD: HALF_PI_VALUE },
+  12: { K: 51, R: 0.45, H: 25, AD: HALF_PI_VALUE },
   14: { K1: 6, R1: 0.2, A1: 0, K: 24, H: 11, R: 0.3, AD: 0 },
   15: { K1: 40, R1: 0.25, A1: HALF_PI_VALUE, K: 80, H: 1, R: 0.25, AD: HALF_PI_VALUE },
   16: { K1: 10, R1: 0.35, A1: 0, K: 10, H: 3, R: 0.15, AD: 0 },
@@ -113,6 +129,13 @@ const COMPOSITION2_PRESETS = {
   23: { K1: 10, N: 10, K: 21, H: 10, R1: 0, R: 0.5, RR: 0.75 },
   24: { K1: 28, N: 56, K: 7, H: 3, R1: 0.15, R: 0.35, RR: 0.95 },
   25: { K1: 20, N: 60, K: 8, H: 1, R1: 0.05, R: 0.45, RR: 0.945 },
+};
+
+const BIPARTI_PRESETS = {
+  101: { N: 10, XA: 0, YA: 0, XB: 0, YB: 1, XC: 1, YC: 0, XD: 1, YD: 1 },
+  102: { N: 15, XA: 0.5, YA: 1 / 15, XB: 0.5, YB: 1.2, XC: 0, YC: 0, XD: 1, YD: 0 },
+  103: { N: 19, XA: 0, YA: 0, XB: 1, YB: 1.4, XC: 0, YC: 1.4, XD: 1, YD: 0 },
+  104: { N: 16, XA: 0, YA: 0, XB: 0.5, YB: 1, XC: 1, YC: 0, XD: 0.5, YD: 1 },
 };
 
 const ORBITAL_PRESETS = {
@@ -276,6 +299,7 @@ function buildModes() {
   modes = [];
   addPresetModes("composition", "COMPOSITION 1", COMPOSITION1_PRESETS, renderComposition1);
   addPresetModes("composition", "COMPOSITION 2", COMPOSITION2_PRESETS, renderComposition2);
+  addPresetModes("biparti", "BIPARTI COMPLET", BIPARTI_PRESETS, renderBiparti);
   addPresetModes("orbital", "COURBES ORBITALES", ORBITAL_PRESETS, renderOrbital);
   addPresetModes("tournante", "COURBES TOURNANTES", TOURNANTE_PRESETS, renderTournante);
   addPresetModes("orbital", "COURBES SPIRALES", SPIRAL_PRESETS, renderSpiral);
@@ -405,6 +429,17 @@ function renderMode(mode, metrics) {
 }
 
 function renderComposition1(preset, metrics, drawing) {
+  if (drawing <= 12) {
+    let unit = min(width, height);
+    let radius = unit * getPresetValue(drawing, "R", preset.R, metrics) * globalConfig.size * (1 + getGlobalAudioAmount("size", metrics));
+    let k = max(3, floor(getPresetValue(drawing, "K", preset.K, metrics)));
+    let h = max(1, floor(getPresetValue(drawing, "H", preset.H, metrics)));
+    let rotation = getPresetValue(drawing, "AD", preset.AD, metrics) + metrics.time * getSpeedMod(metrics) * 0.12;
+    strokeWeight(1 + metrics.level * 1.2);
+    drawStar(width * 0.5, height * 0.5, radius, k, h, rotation);
+    return;
+  }
+
   let unit = min(width, height);
   let time = metrics.time;
   let sizeMod = 1 + getGlobalAudioAmount("size", metrics);
@@ -422,6 +457,38 @@ function renderComposition1(preset, metrics, drawing) {
     let cx = width * 0.5 + centerRadius * cos(centerAngle);
     let cy = height * 0.5 + centerRadius * sin(centerAngle);
     drawStar(cx, cy, starRadius, k, h, ad + time * getSpeedMod(metrics) * 0.22);
+  }
+}
+
+function renderBiparti(preset, metrics, drawing) {
+  let n = max(2, floor(getPresetValue(drawing, "N", preset.N, metrics)));
+  let wobble = metrics.time * getSpeedMod(metrics) * 0.12;
+  let xa = getPresetValue(drawing, "XA", preset.XA, metrics);
+  let ya = getPresetValue(drawing, "YA", preset.YA, metrics);
+  let xb = getPresetValue(drawing, "XB", preset.XB, metrics);
+  let yb = getPresetValue(drawing, "YB", preset.YB, metrics);
+  let xc = getPresetValue(drawing, "XC", preset.XC, metrics);
+  let yc = getPresetValue(drawing, "YC", preset.YC, metrics);
+  let xd = getPresetValue(drawing, "XD", preset.XD, metrics);
+  let yd = getPresetValue(drawing, "YD", preset.YD, metrics);
+  let padX = width * 0.14;
+  let padY = height * 0.14;
+  let spanX = width - padX * 2;
+  let spanY = height - padY * 2;
+
+  strokeWeight(0.8 + metrics.level);
+  for (let i = 0; i <= n; i++) {
+    let x1 = padX + spanX * ((i * xa + (n - i) * xb) / n);
+    let y1 = padY + spanY * ((i * ya + (n - i) * yb) / n);
+    x1 += sin(wobble + i * 0.19) * metrics.mid * 8;
+    y1 += cos(wobble + i * 0.13) * metrics.bass * 8;
+    for (let j = 0; j <= n; j++) {
+      let x2 = padX + spanX * ((j * xc + (n - j) * xd) / n);
+      let y2 = padY + spanY * ((j * yc + (n - j) * yd) / n);
+      x2 += cos(wobble + j * 0.11) * metrics.treble * 8;
+      y2 += sin(wobble + j * 0.17) * metrics.mid * 8;
+      line(x1, y1, x2, y2);
+    }
   }
 }
 
@@ -820,7 +887,11 @@ function renderD3StructureC(preset, metrics, drawing) {
   let n = max(2, floor(getPresetValue(drawing, "N", preset.N, metrics)));
   let unit = min(width, height) * 0.8 * globalConfig.size;
 
-  strokeWeight(0.9 + metrics.level);
+  let segments = [];
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
   let faceCount = preset.variant === "plane_grid" ? 2 : 3;
   for (let face = 1; face <= faceCount; face++) {
     for (let i = 0; i <= n; i++) {
@@ -829,10 +900,15 @@ function renderD3StructureC(preset, metrics, drawing) {
         let end = d3StructureCPoint(face, i, j, n, 1, preset.variant);
         let p1 = project3DWithOffsets(start[0], start[1], start[2], az, ay, ax, qx, qy, qz, 2, 2, unit);
         let p2 = project3DWithOffsets(end[0], end[1], end[2], az, ay, ax, qx, qy, qz, 2, 2, unit);
-        line(p1.x, p1.y, p2.x, p2.y);
+        minX = min(minX, p1.x, p2.x);
+        minY = min(minY, p1.y, p2.y);
+        maxX = max(maxX, p1.x, p2.x);
+        maxY = max(maxY, p1.y, p2.y);
+        segments.push([p1, p2]);
       }
     }
   }
+  drawFittedSegments(segments, minX, minY, maxX, maxY);
 }
 
 function d3StructureCPoint(face, i, j, n, side, variant) {
@@ -858,8 +934,11 @@ function renderD3StructureD(preset, metrics, drawing) {
   let unit = min(width, height) * 0.82 * globalConfig.size * (1 + getGlobalAudioAmount("size", metrics) * 0.35);
   let limit = preset.halfSweep ? floor(n / 2) : n;
 
-  strokeWeight(0.9 + metrics.level);
-  beginShape();
+  let points = [];
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
   for (let i = 0; i <= limit; i++) {
     let mx = (2 * i) / n - 1;
     let r = d3StructureDRadius(preset.radiusMode, mx, m, i, n);
@@ -867,9 +946,13 @@ function renderD3StructureD(preset, metrics, drawing) {
     let my = r * cos(an);
     let mz = r * sin(an);
     let point = project3DWithOffsets(mx, my, mz, az, ay, ax, qx, qy, qz, 2, 2, unit);
-    vertex(point.x, point.y);
+    minX = min(minX, point.x);
+    minY = min(minY, point.y);
+    maxX = max(maxX, point.x);
+    maxY = max(maxY, point.y);
+    points.push(point);
   }
-  endShape();
+  drawFittedPolyline(points, minX, minY, maxX, maxY);
 }
 
 function d3StructureDRadius(mode, mx, m, i, n) {
@@ -877,6 +960,37 @@ function d3StructureDRadius(mode, mx, m, i, n) {
   if (mode === "half_circle") return 0.5 * sqrt(max(0, 1 - mx * mx));
   if (mode === "wave") return 0.3 + 0.3 * sin((TAU_VALUE * m * i) / n + (3 * PI_VALUE) / 2);
   return sqrt(max(0, 1 - mx * mx));
+}
+
+function drawFittedSegments(segments, minX, minY, maxX, maxY) {
+  let spanX = max(1, maxX - minX);
+  let spanY = max(1, maxY - minY);
+  let fit = min((width * 0.7) / spanX, (height * 0.7) / spanY);
+  let centerX = (minX + maxX) * 0.5;
+  let centerY = (minY + maxY) * 0.5;
+  strokeWeight(0.9 + smoothedLevel);
+  for (let segment of segments) {
+    line(
+      (segment[0].x - centerX) * fit + width * 0.5,
+      (segment[0].y - centerY) * fit + height * 0.5,
+      (segment[1].x - centerX) * fit + width * 0.5,
+      (segment[1].y - centerY) * fit + height * 0.5
+    );
+  }
+}
+
+function drawFittedPolyline(points, minX, minY, maxX, maxY) {
+  let spanX = max(1, maxX - minX);
+  let spanY = max(1, maxY - minY);
+  let fit = min((width * 0.7) / spanX, (height * 0.7) / spanY);
+  let centerX = (minX + maxX) * 0.5;
+  let centerY = (minY + maxY) * 0.5;
+  strokeWeight(0.9 + smoothedLevel);
+  beginShape();
+  for (let point of points) {
+    vertex((point.x - centerX) * fit + width * 0.5, (point.y - centerY) * fit + height * 0.5);
+  }
+  endShape();
 }
 
 function renderD3StructureA(preset, metrics, drawing) {
@@ -1250,6 +1364,9 @@ function updateUiTheme() {
   document.documentElement.style.setProperty("--ui-bg", themeConfig.bgColor);
   document.documentElement.style.setProperty("--ui-fg", themeConfig.strokeColor);
   document.documentElement.style.setProperty("--ui-accent", themeConfig.accentColor);
+  document.documentElement.style.setProperty("--ui-panel", themeConfig.panelColor);
+  document.documentElement.style.setProperty("--ui-control", themeConfig.controlColor);
+  document.documentElement.style.setProperty("--ui-hover", themeConfig.hoverColor);
 }
 
 function getReactiveStrokeColor(metrics) {
@@ -1268,6 +1385,9 @@ function applyPalettePreset(name) {
   themeConfig.bgColor = entry.bg;
   themeConfig.strokeColor = entry.stroke;
   themeConfig.accentColor = entry.accent;
+  themeConfig.panelColor = "rgba(1, 22, 80, 0.8)";
+  themeConfig.controlColor = "rgba(1, 58, 187, 0.72)";
+  themeConfig.hoverColor = "rgba(247, 235, 35, 0.15)";
   if (globalConfig.drawColor === previousStroke) globalConfig.drawColor = themeConfig.strokeColor;
   if (globalConfig.audioAccentColor === previousAccent) globalConfig.audioAccentColor = themeConfig.accentColor;
   renderThemePanel();
@@ -1289,8 +1409,8 @@ function renderConfigPanel() {
 
   let html = "";
   html += renderSection("global", "General", [
-    makeSliderControl("size", "Canvas Scale", globalConfig.size, 0.05, 3, 0.01, "percent"),
-    makeSliderControl("speed", "Speed", globalConfig.speed, 0.2, 2.5, 0.01),
+    makeSliderControl("size", "Scale (% of window)", globalConfig.size, 0.05, 3, 0.01, "percent"),
+    makeSliderControl("speed", "Animation Rate", globalConfig.speed, 0.2, 2.5, 0.01),
     makeSliderControl("micSensitivity", "Mic Sensitivity", globalConfig.micSensitivity, 0, 10, 0.01),
     makeSliderControl("placeX", "Placement X", globalConfig.placeX, -1, 1, 0.01),
     makeSliderControl("placeY", "Placement Y", globalConfig.placeY, -1, 1, 0.01),
@@ -1336,6 +1456,9 @@ function renderThemePanel() {
     makeColorControl("bgColor", "Background", themeConfig.bgColor, "theme"),
     makeColorControl("strokeColor", "Interface / Default Line", themeConfig.strokeColor, "theme"),
     makeColorControl("accentColor", "Interface Accent", themeConfig.accentColor, "theme"),
+    makeTextControl("panelColor", "Panel Surface", themeConfig.panelColor, "theme"),
+    makeTextControl("controlColor", "Button Fill", themeConfig.controlColor, "theme"),
+    makeTextControl("hoverColor", "Button Hover", themeConfig.hoverColor, "theme"),
   ]);
   themeContentEl.innerHTML = html;
   bindThemeControls();
@@ -1530,6 +1653,16 @@ function makeCheckboxControl(key, label, value) {
     <div class="config-row">
       <label for="global-${key}">${label}</label>
       <input id="global-${key}" data-global-key="${key}" type="checkbox" ${value ? "checked" : ""}>
+    </div>
+  `;
+}
+
+function makeTextControl(key, label, value, scope = "theme") {
+  let dataKey = scope === "theme" ? "data-theme-key" : "data-global-key";
+  return `
+    <div class="config-row">
+      <label for="${scope}-${key}">${label}</label>
+      <input id="${scope}-${key}" ${dataKey}="${key}" type="text" value="${value}">
     </div>
   `;
 }
