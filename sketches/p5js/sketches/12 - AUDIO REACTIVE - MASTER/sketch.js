@@ -24,6 +24,7 @@ let configPanelEl;
 let configContentEl;
 let themePanelEl;
 let themeContentEl;
+let helpPanelEl;
 let uiHintEl;
 let pickModeEl;
 let startAudioButtons = [];
@@ -32,6 +33,7 @@ let statusFlashUntil = 0;
 let chromeVisible = true;
 let configPanelVisible = true;
 let themePanelVisible = false;
+let helpPanelVisible = false;
 let hideUiAt = 0;
 let sectionOpenState = { global: true, color: false, current: false, theme: true };
 let currentFavorites = new Set();
@@ -58,12 +60,12 @@ const PALETTES_UI = {
   solarpunk: { label: "Solarpunk", bg: "#2a9d8f", stroke: "#e9c46a", accent: "#264653" },
   synthwave: { label: "Synthwave", bg: "#0b132b", stroke: "#ff006e", accent: "#3a86ff" },
   terminal: { label: "Terminal", bg: "#081c15", stroke: "#95d5b2", accent: "#52b788" },
-  atlas: { label: "Coolors Atlas", bg: "#264653", stroke: "#e9c46a", accent: "#e76f51" },
-  neon: { label: "Coolors Neon", bg: "#3a86ff", stroke: "#ffbe0b", accent: "#ff006e" },
-  miami: { label: "Coolors Miami", bg: "#073b4c", stroke: "#ffd166", accent: "#06d6a0" },
-  candy: { label: "Coolors Candy", bg: "#9b5de5", stroke: "#fee440", accent: "#00f5d4" },
-  sherbet: { label: "Coolors Sherbet", bg: "#ff70a6", stroke: "#e9ff70", accent: "#70d6ff" },
-  abyss: { label: "Coolors Abyss", bg: "#0b132b", stroke: "#6fffe9", accent: "#5bc0be" },
+  atlas: { label: "Desert Bloom", bg: "#264653", stroke: "#e9c46a", accent: "#e76f51" },
+  neon: { label: "Electric Pop", bg: "#3a86ff", stroke: "#ffbe0b", accent: "#ff006e" },
+  miami: { label: "Tropical Punch", bg: "#073b4c", stroke: "#ffd166", accent: "#06d6a0" },
+  candy: { label: "Candy Circuit", bg: "#9b5de5", stroke: "#fee440", accent: "#00f5d4" },
+  sherbet: { label: "Pastel Heat", bg: "#ff70a6", stroke: "#e9ff70", accent: "#70d6ff" },
+  abyss: { label: "Deep Blue Sea", bg: "#0b132b", stroke: "#6fffe9", accent: "#5bc0be" },
   custom: { label: "Custom", bg: "#013abb", stroke: "#f7eb23", accent: "#ffffff" },
 };
 
@@ -79,16 +81,17 @@ let globalConfig = {
 };
 
 let themeConfig = {
-  palette: "blue",
-  bgColor: "#013abb",
-  strokeColor: "#f7eb23",
-  accentColor: "#ffffff",
-  panelColor: "rgba(1, 22, 80, 0.8)",
-  controlColor: "rgba(1, 58, 187, 0.72)",
-  hoverColor: "rgba(247, 235, 35, 0.15)",
+  palette: "abyss",
+  bgColor: "#0b132b",
+  strokeColor: "#6fffe9",
+  accentColor: "#5bc0be",
+  panelColor: "rgba(28, 37, 65, 0.84)",
+  controlColor: "rgba(58, 80, 107, 0.84)",
+  hoverColor: "rgba(111, 255, 233, 0.18)",
 };
 
 let globalAudioRouting = {
+  mode: "multiple",
   size: { source: "bass", amount: 0.35 },
   speed: { source: "level", amount: 0.55 },
   detail: { source: "treble", amount: 0.4 },
@@ -281,6 +284,7 @@ function setup() {
   pixelDensity(1);
   frameRate(30);
   buildModes();
+  loadTheme();
   applyPalettePreset(themeConfig.palette);
   syncDrawingColorsToTheme(true);
   captureInitialState();
@@ -347,6 +351,7 @@ function setupUi() {
   configContentEl = document.getElementById("config-content");
   themePanelEl = document.getElementById("theme-panel");
   themeContentEl = document.getElementById("theme-content");
+  helpPanelEl = document.getElementById("help-panel");
   uiHintEl = document.getElementById("ui-hint");
   pickModeEl = document.getElementById("pick-mode");
   startAudioButtons = [
@@ -390,6 +395,19 @@ function setupUi() {
   });
   document.getElementById("toggle-theme").addEventListener("click", () => {
     themePanelVisible = !themePanelVisible;
+    applyChromeVisibility();
+  });
+  document.getElementById("show-help").addEventListener("click", () => {
+    if (!chromeVisible) {
+      chromeVisible = true;
+      helpPanelVisible = true;
+    } else {
+      helpPanelVisible = !helpPanelVisible;
+    }
+    applyChromeVisibility();
+  });
+  document.getElementById("toggle-help").addEventListener("click", () => {
+    helpPanelVisible = !helpPanelVisible;
     applyChromeVisibility();
   });
   document.getElementById("toggle-config").addEventListener("click", () => {
@@ -477,6 +495,7 @@ function renderComposition1(preset, metrics, drawing) {
 function renderBiparti(preset, metrics, drawing) {
   let n = max(2, floor(getPresetValue(drawing, "N", preset.N, metrics)));
   let wobble = metrics.time * getSpeedMod(metrics) * 0.12;
+  let sizeMod = globalConfig.size * (1 + getGlobalAudioAmount("size", metrics));
   let xa = getPresetValue(drawing, "XA", preset.XA, metrics);
   let ya = getPresetValue(drawing, "YA", preset.YA, metrics);
   let xb = getPresetValue(drawing, "XB", preset.XB, metrics);
@@ -485,20 +504,20 @@ function renderBiparti(preset, metrics, drawing) {
   let yc = getPresetValue(drawing, "YC", preset.YC, metrics);
   let xd = getPresetValue(drawing, "XD", preset.XD, metrics);
   let yd = getPresetValue(drawing, "YD", preset.YD, metrics);
-  let padX = width * 0.14;
-  let padY = height * 0.14;
-  let spanX = width - padX * 2;
-  let spanY = height - padY * 2;
+  let spanX = width * 0.72 * sizeMod;
+  let spanY = height * 0.72 * sizeMod;
+  let originX = width * 0.5 - spanX * 0.5;
+  let originY = height * 0.5 - spanY * 0.5;
 
   strokeWeight(0.8 + metrics.level);
   for (let i = 0; i <= n; i++) {
-    let x1 = padX + spanX * ((i * xa + (n - i) * xb) / n);
-    let y1 = padY + spanY * ((i * ya + (n - i) * yb) / n);
+    let x1 = originX + spanX * ((i * xa + (n - i) * xb) / n);
+    let y1 = originY + spanY * ((i * ya + (n - i) * yb) / n);
     x1 += sin(wobble + i * 0.19) * metrics.mid * 8;
     y1 += cos(wobble + i * 0.13) * metrics.bass * 8;
     for (let j = 0; j <= n; j++) {
-      let x2 = padX + spanX * ((j * xc + (n - j) * xd) / n);
-      let y2 = padY + spanY * ((j * yc + (n - j) * yd) / n);
+      let x2 = originX + spanX * ((j * xc + (n - j) * xd) / n);
+      let y2 = originY + spanY * ((j * yc + (n - j) * yd) / n);
       x2 += cos(wobble + j * 0.11) * metrics.treble * 8;
       y2 += sin(wobble + j * 0.17) * metrics.mid * 8;
       line(x1, y1, x2, y2);
@@ -1132,8 +1151,7 @@ function drawHud(mode, metrics) {
   if (statusFlash && millis() < statusFlashUntil) micStatus = statusFlash;
 
   text(mode.label, 18, 18);
-  text("Space next form  R weighted random  S hide or show menu", 18, 38);
-  text(micStatus, 18, 58);
+  text(micStatus, 18, 38);
   text(
     "bass " +
       nf(metrics.bass, 1, 2) +
@@ -1144,9 +1162,8 @@ function drawHud(mode, metrics) {
       "  fps " +
       nf(frameRate(), 2, 1),
     18,
-    78
+    58
   );
-  text("Full Range = overall level. Routing source is set per control in the panel.", 18, 98);
 }
 
 function keyPressed() {
@@ -1210,8 +1227,19 @@ function applyChromeVisibility() {
   if (controlsEl) controlsEl.classList.toggle("is-hidden", !chromeVisible);
   if (configPanelEl) configPanelEl.classList.toggle("is-hidden", !chromeVisible || !configPanelVisible);
   if (themePanelEl) themePanelEl.classList.toggle("is-hidden", !chromeVisible || !themePanelVisible);
+  if (helpPanelEl) helpPanelEl.classList.toggle("is-hidden", !chromeVisible || !helpPanelVisible);
   let toggleButton = document.getElementById("toggle-config");
   if (toggleButton) toggleButton.textContent = configPanelVisible ? "Hide Panel" : "Show Panel";
+  setButtonState("toggle-menu", chromeVisible);
+  setButtonState("show-config", chromeVisible && configPanelVisible);
+  setButtonState("show-colors", chromeVisible && themePanelVisible);
+  setButtonState("show-help", chromeVisible && helpPanelVisible);
+  setButtonState("toggle-fullscreen", fullscreen());
+}
+
+function setButtonState(id, active) {
+  let button = document.getElementById(id);
+  if (button) button.classList.toggle("is-active", active);
 }
 
 function updateUiHint() {
@@ -1243,6 +1271,20 @@ function loadFavorites() {
     }
   } catch (_error) {}
   currentFavorites = new Set(Array.from(FAVORITE_DRAWINGS));
+}
+
+function loadTheme() {
+  try {
+    let raw = localStorage.getItem("dessinsgeo_theme");
+    if (!raw) return;
+    Object.assign(themeConfig, JSON.parse(raw));
+  } catch (_error) {}
+}
+
+function saveTheme() {
+  try {
+    localStorage.setItem("dessinsgeo_theme", JSON.stringify(themeConfig));
+  } catch (_error) {}
 }
 
 function saveFavorites() {
@@ -1334,9 +1376,11 @@ function getAudioMetric(metrics, source) {
 }
 
 function getGlobalAudioAmount(key, metrics) {
+  if (key === "mode") return 0;
   let route = globalAudioRouting[key];
   if (!route) return 0;
-  return route.amount * getAudioMetric(metrics, route.source);
+  let source = globalAudioRouting.mode === "multiple" ? route.source : globalAudioRouting.mode;
+  return route.amount * getAudioMetric(metrics, source);
 }
 
 function getPresetRouteId(drawing, key) {
@@ -1399,11 +1443,12 @@ function applyPalettePreset(name) {
   themeConfig.bgColor = entry.bg;
   themeConfig.strokeColor = entry.stroke;
   themeConfig.accentColor = entry.accent;
-  themeConfig.panelColor = "rgba(1, 22, 80, 0.8)";
-  themeConfig.controlColor = "rgba(1, 58, 187, 0.72)";
-  themeConfig.hoverColor = "rgba(247, 235, 35, 0.15)";
+  themeConfig.panelColor = name === "abyss" ? "rgba(28, 37, 65, 0.84)" : "rgba(1, 22, 80, 0.8)";
+  themeConfig.controlColor = name === "abyss" ? "rgba(58, 80, 107, 0.84)" : "rgba(1, 58, 187, 0.72)";
+  themeConfig.hoverColor = name === "abyss" ? "rgba(111, 255, 233, 0.18)" : "rgba(247, 235, 35, 0.15)";
   if (globalConfig.drawColor === previousStroke) globalConfig.drawColor = themeConfig.strokeColor;
   if (globalConfig.audioAccentColor === previousAccent) globalConfig.audioAccentColor = themeConfig.accentColor;
+  saveTheme();
   renderThemePanel();
 }
 
@@ -1414,6 +1459,7 @@ function syncDrawingColorsToTheme(force) {
 
 function toggleFullscreen() {
   fullscreen(!fullscreen());
+  setTimeout(() => applyChromeVisibility(), 50);
 }
 
 function renderConfigPanel() {
@@ -1423,14 +1469,30 @@ function renderConfigPanel() {
 
   let html = "";
   html += renderSection("global", "General", [
-    makeSliderControl("size", "Scale (% of window)", globalConfig.size, 0.05, 3, 0.01, "percent"),
+    makeSliderControl("size", "Scale", globalConfig.size, 0.05, 3, 0.01, "percent"),
     makeSliderControl("speed", "Animation Rate", globalConfig.speed, 0.2, 2.5, 0.01),
     makeSliderControl("micSensitivity", "Mic Sensitivity", globalConfig.micSensitivity, 0, 10, 0.01),
     makeSliderControl("placeX", "Placement X", globalConfig.placeX, -1, 1, 0.01),
     makeSliderControl("placeY", "Placement Y", globalConfig.placeY, -1, 1, 0.01),
-    makeAudioRouteControls("global", "size", "Size Audio", globalAudioRouting.size),
-    makeAudioRouteControls("global", "speed", "Speed Audio", globalAudioRouting.speed),
-    makeAudioRouteControls("global", "detail", "Detail Audio", globalAudioRouting.detail),
+    makeSelectControl(
+      "mode",
+      "Audio Source",
+      globalAudioRouting.mode,
+      [
+        { value: "level", label: "Full Range" },
+        { value: "bass", label: "Bass" },
+        { value: "mid", label: "Mid" },
+        { value: "treble", label: "Treble" },
+        { value: "multiple", label: "Multiple" },
+      ]
+    ),
+    ...(globalAudioRouting.mode === "multiple"
+      ? [
+          makeAudioRouteControls("global", "size", "Size Audio", globalAudioRouting.size),
+          makeAudioRouteControls("global", "speed", "Speed Audio", globalAudioRouting.speed),
+          makeAudioRouteControls("global", "detail", "Detail Audio", globalAudioRouting.detail),
+        ]
+      : []),
   ]);
   html += renderSection("color", "Color", [
     makeColorControl("drawColor", "Drawing", globalConfig.drawColor),
@@ -1541,6 +1603,11 @@ function bindAudioRouteControls(drawing) {
 function updateGlobalConfigFromInput(el) {
   let key = el.dataset.globalKey;
   let value = el.type === "checkbox" ? el.checked : el.type === "range" ? Number(el.value) : el.value;
+  if (key === "mode") {
+    globalAudioRouting.mode = value;
+    renderConfigPanel();
+    return;
+  }
   globalConfig[key] = value;
   updateValueText("value-global-" + key, key, value);
 }
@@ -1582,6 +1649,7 @@ function updateThemeConfigFromInput(el) {
   if (key === "accentColor" && globalConfig.audioAccentColor === previousAccent) globalConfig.audioAccentColor = value;
   let paletteSelect = document.getElementById("theme-palette");
   if (paletteSelect) paletteSelect.value = "custom";
+  saveTheme();
   renderThemePanel();
   renderConfigPanel();
 }

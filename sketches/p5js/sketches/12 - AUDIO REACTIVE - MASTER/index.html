@@ -14,7 +14,7 @@
       <button id="start-audio" class="control-button control-button-primary" type="button">
         Start Audio
       </button>
-      <button id="toggle-menu" class="control-button" type="button">Menu</button>
+      <button id="toggle-menu" class="control-button" type="button">Show Menu</button>
       <button id="toggle-fullscreen" class="control-button" type="button">Fullscreen</button>
       <button id="previous-mode" class="control-button" type="button">Previous</button>
       <button id="next-mode" class="control-button" type="button">Next</button>
@@ -22,6 +22,7 @@
       <select id="pick-mode" class="control-select" aria-label="Pick drawing"></select>
       <button id="show-config" class="control-button" type="button">Config</button>
       <button id="show-colors" class="control-button" type="button">Theme</button>
+      <button id="show-help" class="control-button" type="button">Help</button>
     </div>
     <aside id="config-panel" class="config-panel">
       <div class="config-panel-inner">
@@ -53,6 +54,25 @@
           </div>
         </div>
         <div id="theme-content"></div>
+      </div>
+    </aside>
+    <aside id="help-panel" class="config-panel config-panel-left">
+      <div class="config-panel-inner">
+        <div class="config-head">
+          <p class="config-kicker">Help</p>
+          <div class="config-head-actions">
+            <button id="toggle-help" class="control-button control-button-small" type="button">
+              Hide
+            </button>
+          </div>
+        </div>
+        <div class="config-copy">
+          <p>`Space`: next drawing</p>
+          <p>`R`: weighted random</p>
+          <p>`S`: hide or show the menu</p>
+          <p>Click `Start Audio` to enable the microphone.</p>
+          <p>`Full Range` means overall mic level.</p>
+        </div>
       </div>
     </aside>
     <div id="start-overlay" class="overlay">
