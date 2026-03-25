@@ -20,6 +20,7 @@ let currentModeIndex = 0;
 let overlayEl;
 let overlayStatusEl;
 let controlsEl;
+let quickMenuEl;
 let configPanelEl;
 let configContentEl;
 let themePanelEl;
@@ -42,6 +43,7 @@ const PI_VALUE = Math.PI;
 const HALF_PI_VALUE = Math.PI / 2;
 const TAU_VALUE = Math.PI * 2;
 const UI_HINT_DELAY_MS = 1000;
+const UI_HINT_VISIBLE_MS = 4000;
 const AUDIO_SOURCE_OPTIONS = [
   { value: "off", label: "Off" },
   { value: "level", label: "Full Range" },
@@ -105,6 +107,7 @@ let initialPresetByDrawing = {};
 
 const CATEGORY_WEIGHTS = {
   composition: 4,
+  joligone: 3,
   orbital: 7,
   tournante: 7,
   modulo: 6,
@@ -112,6 +115,16 @@ const CATEGORY_WEIGHTS = {
   elastic: 5,
   d3structures: 7,
   biparti: 4,
+};
+
+const JOLIGONES_PRESETS = {
+  26: { K: 200, AN: (15 * PI_VALUE) / 31, RA: 0.98, RR: 0.8, startX: 0.1, startY: 0.1 },
+  27: { K: 120, AN: (29 * PI_VALUE) / 30, RA: 0.98, RR: 0.8, startX: 0.1, startY: 0.3 },
+  28: { K: 200, AN: PI_VALUE / 4, RA: 0.98, RR: 0.4, startX: 0.3, startY: 0.3 },
+  29: { K: 2000, AN: PI_VALUE / 20, RA: 0.998, RR: 0.065, startX: 0.45, startY: 0.45 },
+  30: { K: 200, AN: (4 * PI_VALUE) / 5 + 0.02, RA: 0.99, RR: 0.8, startX: 0.12, startY: 0.12 },
+  31: { K: 100, AN: (6 * PI_VALUE) / 7, RA: 0.98, RR: 0.8, startX: 0.1, startY: 0.1 },
+  32: { K: 300, AN: (2 * PI_VALUE) / 5 + 0.01, RA: 0.993, RR: 0.6, startX: 0.2, startY: 0.2 },
 };
 
 const COMPOSITION1_PRESETS = {
@@ -312,6 +325,7 @@ function buildModes() {
   modes = [];
   addPresetModes("composition", "COMPOSITION 1", COMPOSITION1_PRESETS, renderComposition1);
   addPresetModes("composition", "COMPOSITION 2", COMPOSITION2_PRESETS, renderComposition2);
+  addPresetModes("joligone", "JOLIGONES", JOLIGONES_PRESETS, renderJoligone);
   addPresetModes("biparti", "BIPARTI COMPLET", BIPARTI_PRESETS, renderBiparti);
   addPresetModes("orbital", "COURBES ORBITALES", ORBITAL_PRESETS, renderOrbital);
   addPresetModes("tournante", "COURBES TOURNANTES", TOURNANTE_PRESETS, renderTournante);
@@ -347,6 +361,7 @@ function setupUi() {
   overlayEl = document.getElementById("start-overlay");
   overlayStatusEl = document.getElementById("overlay-status");
   controlsEl = document.getElementById("controls");
+  quickMenuEl = document.getElementById("quick-menu");
   configPanelEl = document.getElementById("config-panel");
   configContentEl = document.getElementById("config-content");
   themePanelEl = document.getElementById("theme-panel");
@@ -365,6 +380,7 @@ function setupUi() {
 
   document.getElementById("toggle-fullscreen").addEventListener("click", () => toggleFullscreen());
   document.getElementById("toggle-menu").addEventListener("click", () => toggleChrome());
+  document.getElementById("quick-menu").addEventListener("click", () => showMenuOnly());
   document.getElementById("next-mode").addEventListener("click", () => nextMode());
   document.getElementById("previous-mode").addEventListener("click", () => previousMode());
   document.getElementById("random-mode").addEventListener("click", () => randomMode());
@@ -523,6 +539,35 @@ function renderBiparti(preset, metrics, drawing) {
       line(x1, y1, x2, y2);
     }
   }
+}
+
+function renderJoligone(preset, metrics, drawing) {
+  let k = max(20, floor(getPresetValue(drawing, "K", preset.K, metrics)));
+  let angleStep = getPresetValue(drawing, "AN", preset.AN, metrics);
+  let decay = constrain(getPresetValue(drawing, "RA", preset.RA, metrics), 0.85, 0.9999);
+  let radius = min(width, height) * getPresetValue(drawing, "RR", preset.RR, metrics) * globalConfig.size;
+  let x = width * getPresetValue(drawing, "startX", preset.startX, metrics);
+  let y = height * getPresetValue(drawing, "startY", preset.startY, metrics);
+  let angle = metrics.time * getSpeedMod(metrics) * 0.08;
+  let points = [];
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (let i = 0; i < k; i++) {
+    x += radius * cos(angle);
+    y += radius * sin(angle);
+    points.push({ x: x, y: y });
+    minX = min(minX, x);
+    minY = min(minY, y);
+    maxX = max(maxX, x);
+    maxY = max(maxY, y);
+    angle += angleStep;
+    radius *= decay;
+  }
+
+  drawFittedPolyline(points, minX, minY, maxX, maxY);
 }
 
 function renderComposition2(preset, metrics, drawing) {
@@ -1189,7 +1234,7 @@ function handleWindowKeyDown(event) {
     return;
   }
 
-  if (event.key === "s" || event.key === "S") {
+  if (event.key === "m" || event.key === "M") {
     event.preventDefault();
     toggleChrome();
   }
@@ -1218,13 +1263,27 @@ function randomMode() {
 
 function toggleChrome() {
   chromeVisible = !chromeVisible;
-  hideUiAt = chromeVisible ? 0 : millis();
+  if (chromeVisible) {
+    hideUiAt = 0;
+  } else {
+    configPanelVisible = false;
+    themePanelVisible = false;
+    helpPanelVisible = false;
+    hideUiAt = millis();
+  }
   applyChromeVisibility();
   if (chromeVisible) flashStatus("Menu visible");
 }
 
+function showMenuOnly() {
+  chromeVisible = true;
+  hideUiAt = 0;
+  applyChromeVisibility();
+}
+
 function applyChromeVisibility() {
   if (controlsEl) controlsEl.classList.toggle("is-hidden", !chromeVisible);
+  if (quickMenuEl) quickMenuEl.classList.toggle("is-visible", !chromeVisible);
   if (configPanelEl) configPanelEl.classList.toggle("is-hidden", !chromeVisible || !configPanelVisible);
   if (themePanelEl) themePanelEl.classList.toggle("is-hidden", !chromeVisible || !themePanelVisible);
   if (helpPanelEl) helpPanelEl.classList.toggle("is-hidden", !chromeVisible || !helpPanelVisible);
@@ -1235,6 +1294,8 @@ function applyChromeVisibility() {
   setButtonState("show-colors", chromeVisible && themePanelVisible);
   setButtonState("show-help", chromeVisible && helpPanelVisible);
   setButtonState("toggle-fullscreen", fullscreen());
+  let fullscreenButton = document.getElementById("toggle-fullscreen");
+  if (fullscreenButton) fullscreenButton.textContent = fullscreen() ? "Fullscreen Enabled" : "Fullscreen Disabled";
 }
 
 function setButtonState(id, active) {
@@ -1244,7 +1305,8 @@ function setButtonState(id, active) {
 
 function updateUiHint() {
   if (!uiHintEl) return;
-  let visible = !chromeVisible && millis() - hideUiAt >= UI_HINT_DELAY_MS;
+  let elapsed = millis() - hideUiAt;
+  let visible = !chromeVisible && elapsed >= UI_HINT_DELAY_MS && elapsed <= UI_HINT_DELAY_MS + UI_HINT_VISIBLE_MS;
   uiHintEl.classList.toggle("is-visible", visible);
 }
 

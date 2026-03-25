@@ -16,7 +16,8 @@ This file tracks which original Delahaye sketch families fit the current audio-r
 | 1-12 | Polygones / Etoiles reguliers | Yes | 3 | Integrated into the master as simple animated polygon and star modes. |
 | 14-19 | Composition 1 | Yes | 1 | Integrated into the master sketch. |
 | 20-25 | Composition 2 | Yes | 1 | Integrated into the master sketch. |
-| 26-33 | Joligones | No | 3 | Likely possible, but not yet routed into the current UI. |
+| 26-32 | Joligones | Yes | 3 | Integrated into the master with fitted centering. |
+| 33 | Joligones | No | 3 | Still pending. |
 | 34-43 | Dessins a partir de donnees / Cheval | No | 4 | Data-driven source material; not a natural fit for the current live modulation UX. |
 | 44-45 | Dessins a partir de donnees / Lion | No | 4 | Same issue as other data-driven drawings. |
 | 46-47 | Dessins a partir de donnees / Oiseaux-Poissons | No | 4 | Data-driven family, better treated separately. |

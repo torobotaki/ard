@@ -39,6 +39,28 @@ canvas {
   display: none;
 }
 
+.quick-menu {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 21;
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--ui-fg) 18%, transparent);
+  background: color-mix(in srgb, var(--ui-bg) 70%, transparent);
+  color: color-mix(in srgb, var(--ui-fg) 35%, transparent);
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+}
+
+.quick-menu.is-visible {
+  display: block;
+}
+
 .control-button {
   appearance: none;
   border: 1px solid var(--ui-fg);
