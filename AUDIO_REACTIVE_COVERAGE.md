@@ -1,13 +1,22 @@
 # Audio-Reactive Coverage
 
-This file tracks which original Delahaye sketch families fit the current audio-reactive master, and which ones are intentionally left out for now.
+This file tracks which original Delahaye sketch families fit the current audio-reactive master, and which ones remain intentionally out of scope for the current UX.
+
+For the current phase, coverage is considered complete enough. The master now includes the families that best support:
+
+- continuous animation
+- centering and scaling inside one shared canvas
+- audio routing at both global and per-parameter level
+- a single coherent control panel without collapsing into a giant incompatible wrapper
+
+The remaining unsupported families are not blocked by missing code as much as by UX fit. Most of them would either need a different interaction model or would make the current master harder to use.
 
 ## Tier guide
 
 - Tier 1: best fit for the current master UX. These families respond well to continuous animation, centering, global controls, and per-parameter audio routing.
-- Tier 2: good fit, but needed a dedicated integration pass. These still behave well inside the same master UI.
-- Tier 3: possible later, but likely to add visual or UI clutter unless handled selectively.
-- Tier 4: awkward in the current master UX. These probably want a simpler wrapper, a curated subset, or a separate interaction model.
+- Tier 2: good fit, but needed a dedicated integration pass. These still behave well inside the same master UI once centered and normalized.
+- Tier 3: supported selectively or experimentally. These can work in the master, but they are heavier, less uniform, or more likely to need family-specific tuning.
+- Tier 4: intentionally unsupported in the current master. These probably want a simpler wrapper, a curated subset, or a separate interaction model.
 
 ## Coverage table
 
@@ -61,6 +70,6 @@ This file tracks which original Delahaye sketch families fit the current audio-r
 ## Current strategy
 
 1. Keep the master coherent rather than exhaustive.
-2. Finish the high-fit families before adding awkward ones.
-3. Expand within already-compatible families before forcing every upstream sketch into the same UX.
-4. Revisit Tier 3 and Tier 4 families only when the current master remains readable and stable.
+2. Treat Tier 1 and Tier 2 as the stable base of the project.
+3. Treat Tier 3 as supported but more likely to need visual tuning.
+4. Leave Tier 4 out unless a future pass introduces a second UX model for them.
