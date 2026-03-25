@@ -74,21 +74,15 @@ If you want the original project, original gallery, original sketch-by-sketch do
 This repo is intentionally focused on `A·R·D*` as the primary experience rather than duplicating the full upstream README.
 
 
-Links:
+### Links and Credits: 
 
-- Website: [dvalsamou.me](https://dvalsamou.me)
-- Original upstream repo: [v3ga/dessins_geometriques_et_artistiques](https://github.com/v3ga/dessins_geometriques_et_artistiques)
 - Upstream p5.js collection: https://editor.p5js.org/v3ga/collections/ALPCSgG3E
 
+- Originals by [Jean-Paul Delahaye](https://fr.wikipedia.org/wiki/Jean-Paul_Delahaye)
+- Library / p5.js recoding foundation by [@v3ga](https://github.com/v3ga)
+- Audio-reactive adaptation, UI, composition system, calibration, and packaging by [@torobotaki](https://dvalsamou.me)
 
-
-Credits:
-
-- Originals: [Jean-Paul Delahaye](https://fr.wikipedia.org/wiki/Jean-Paul_Delahaye)
-- Library / p5.js recoding foundation: [@v3ga](https://github.com/v3ga)
-- Audio-reactive adaptation, UI, composition system, calibration, and packaging: [@torobotaki](https://dvalsamou.me)
-
-License:
+## License:
 
 - This repository remains distributed under the existing [GPL-2.0 license](LICENSE).
 - `A·R·D*` is a derivative/adaptation built on top of the upstream codebase, not a clean-room rewrite.
