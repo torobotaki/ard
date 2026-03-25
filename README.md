@@ -11,6 +11,12 @@ Links:
 - Original upstream repo: [v3ga/dessins_geometriques_et_artistiques](https://github.com/v3ga/dessins_geometriques_et_artistiques)
 - Upstream p5.js collection: https://editor.p5js.org/v3ga/collections/ALPCSgG3E
 
+## Demo
+
+Try it here:
+
+- https://dvalsamou.me/ard/
+
 Credits:
 
 - Originals: [Jean-Paul Delahaye](https://fr.wikipedia.org/wiki/Jean-Paul_Delahaye)
@@ -58,7 +64,7 @@ Credits and redistribution notes live in [CREDITS.md](CREDITS.md).
 ## Entry points
 
 - Root entry point: [index.html](index.html)
-- Direct master sketch: `sketches/p5js/sketches/12 - AUDIO REACTIVE - MASTER/index.html`
+- App entry point: `ard/index.html`
 - Minimal starter: `sketches/p5js/sketches/11 - AUDIO REACTIVE - ORBITAL LINES/index.html`
 
 ## Upstream archive
