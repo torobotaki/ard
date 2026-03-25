@@ -1,6 +1,8 @@
 # A·R·D* / Audio-Reactive Dessins Geometriques et Artistiques
 
-`A·R·D*` is an audio-reactive adaptation of the p5.js recoding of Jean-Paul Delahaye's *Dessins géométriques et artistiques avec votre micro-ordinateur*.
+`A·R·D*` is an audio-reactive adaptation of [@v3ga](https://github.com/v3ga)'s recoding in p5.js recoding based on Jean-Paul Delahaye's *Dessins géométriques et artistiques avec votre micro-ordinateur*.
+
+My intent is to provide an open-source and free audio-reactive visualisation tool that anyone can use and adapt. Don't hesitate to use and improve this <3 
 
 ![A·R·D* screenshot](screenshot.png)
 
