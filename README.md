@@ -18,19 +18,20 @@ Try it or use it here:
 
 ### Run it locally
 
-Serve the repository locally:
+- Download it, unzip it if necessary, and
+- Serve the repository locally from the repository directory:
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Then open:
+- Then open:
 
 - `http://localhost:8000/`
 
 The root page forwards directly to the audio-reactive master sketch.
 
-Audio input note:
+### Audio input note:
 
 - `A·R·D*` listens to whatever input device your browser exposes under microphone inputs.
 - If you want to react to computer audio instead of a physical microphone, route system audio into a browser-visible input device first.
