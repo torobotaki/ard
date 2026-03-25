@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="../../lib/p5js/p5.min.js"></script>
+    <script src="../../lib/v3ga/dessins_geometriques/init_trace.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audio Reactive Master</title>
+  </head>
+  <body>
+    <main></main>
+    <div id="controls" class="controls">
+      <button id="start-audio" class="control-button control-button-primary" type="button">
+        Start Audio
+      </button>
+      <button id="toggle-menu" class="control-button" type="button">Menu</button>
+      <button id="toggle-fullscreen" class="control-button" type="button">Fullscreen</button>
+      <button id="next-mode" class="control-button" type="button">Next</button>
+      <button id="random-mode" class="control-button" type="button">Random</button>
+      <select id="pick-mode" class="control-select" aria-label="Pick drawing"></select>
+      <button id="show-config" class="control-button" type="button">Config</button>
+    </div>
+    <aside id="config-panel" class="config-panel">
+      <div class="config-panel-inner">
+        <div class="config-head">
+          <p class="config-kicker">Live Controls</p>
+          <div class="config-head-actions">
+            <button id="reset-config" class="control-button control-button-small" type="button">
+              Reset Config
+            </button>
+            <button id="toggle-config" class="control-button control-button-small" type="button">
+              Hide Panel
+            </button>
+          </div>
+        </div>
+        <div id="config-content"></div>
+      </div>
+    </aside>
+    <div id="start-overlay" class="overlay">
+      <div class="overlay-panel">
+        <p class="overlay-kicker">Audio Reactive Master</p>
+        <h1>Enable the microphone, then cycle forms.</h1>
+        <p>
+          This sketch uses your mic for motion. `Space` goes to the next form, `R`
+          picks a weighted random one, and `S` hides or shows the interface.
+        </p>
+        <p id="overlay-status" class="overlay-status">
+          Open this through `http://localhost` or `https` so the browser can expose the microphone.
+        </p>
+        <button id="overlay-start" class="control-button control-button-primary" type="button">
+          Authorize Microphone
+        </button>
+        <button id="overlay-dismiss" class="control-button" type="button">
+          Continue Without Mic
+        </button>
+      </div>
+    </div>
+    <div id="ui-hint" class="ui-hint">Show menu with S</div>
+    <script src="sketch.js"></script>
+  </body>
+</html>
