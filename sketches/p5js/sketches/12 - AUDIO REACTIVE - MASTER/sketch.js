@@ -2673,7 +2673,7 @@ function buildPresetControls(instanceIndex, preset, drawing) {
   let instance = drawingInstances[instanceIndex];
   setInstanceContext(instance);
   let mode = modes[instance.modeIndex];
-  let keyOrder = getPresetKeyOrder(mode ? mode.family : "", preset);
+  let keyOrder = getPresetKeyOrder(mode ? mode.category : "", preset);
   return Object.keys(preset)
     .filter((key) => typeof preset[key] === "number")
     .sort((a, b) => {
@@ -2685,6 +2685,30 @@ function buildPresetControls(instanceIndex, preset, drawing) {
       return rankA - rankB;
     })
     .map((key) => {
+      if (key === "zMode") return "";
+      if (key === "E1" || key === "E2") {
+        let options = key === "E1"
+          ? [
+              { value: 1, label: "Single Pass" },
+              { value: 2, label: "Double Pass" },
+            ]
+          : [
+              { value: 0, label: "Hidden Lines" },
+              { value: 1, label: "All Lines" },
+            ];
+        let controls = makeInstancePresetSelectControl(
+          instanceIndex,
+          key,
+          key === "E1" ? "Pass Mode" : "Visibility",
+          preset[key],
+          options
+        );
+        let route = getPresetRoute(drawing, key);
+        if (!GLOBAL_ROUTE_KEYS.has(key)) {
+          controls += makeInstanceAudioRouteControls(instanceIndex, "preset", key, key + " Audio", route);
+        }
+        return controls;
+      }
       let range = inferRange(key, preset[key]);
       let route = getPresetRoute(drawing, key);
       let controls = makeInstancePresetSliderControl(instanceIndex, key, key, preset[key], range.min, range.max, range.step);
@@ -2697,7 +2721,7 @@ function buildPresetControls(instanceIndex, preset, drawing) {
 
 function getPresetKeyOrder(family, preset) {
   if (family === "surfaces") {
-    return ["YB", "YC", "YA", "YD", "XB", "XC", "XA", "XD", "N", "M", "E2", "E1", "zMode"];
+    return ["YB", "YC", "YA", "YD", "XB", "XC", "XA", "XD", "N", "M", "E2", "E1"];
   }
   return Object.keys(preset).sort();
 }
@@ -2707,7 +2731,7 @@ function inferRange(key, value) {
     return { min: 178, max: 200, step: 1 };
   }
   if (key === "E1" || key === "E2") {
-    return { min: 0, max: 2, step: 1 };
+    return { min: 0, max: key === "E1" ? 2 : 1, step: 1 };
   }
   let absValue = abs(value);
   if (["detail", "N", "M", "K", "K1", "K2", "H"].includes(key)) {
@@ -2760,6 +2784,18 @@ function makeInstancePresetSliderControl(instanceIndex, key, label, value, min, 
       <label for="instance-${instanceIndex}-preset-${key}">${label}</label>
       <span id="${valueId}" class="config-value">${formatValue(key, value)}</span>
       <input id="instance-${instanceIndex}-preset-${key}" data-instance-index="${instanceIndex}" data-instance-preset-key="${key}" data-value-id="${valueId}" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
+    </div>
+  `;
+}
+
+function makeInstancePresetSelectControl(instanceIndex, key, label, value, options) {
+  let optionsHtml = options
+    .map((option) => `<option value="${option.value}" ${Number(option.value) === Number(value) ? "selected" : ""}>${option.label}</option>`)
+    .join("");
+  return `
+    <div class="config-row">
+      <label for="instance-${instanceIndex}-preset-${key}">${label}</label>
+      <select id="instance-${instanceIndex}-preset-${key}" data-instance-index="${instanceIndex}" data-instance-preset-key="${key}">${optionsHtml}</select>
     </div>
   `;
 }
