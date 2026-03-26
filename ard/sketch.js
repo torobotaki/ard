@@ -2703,6 +2703,12 @@ function getPresetKeyOrder(family, preset) {
 }
 
 function inferRange(key, value) {
+  if (key === "zMode") {
+    return { min: 178, max: 200, step: 1 };
+  }
+  if (key === "E1" || key === "E2") {
+    return { min: 0, max: 2, step: 1 };
+  }
   let absValue = abs(value);
   if (["detail", "N", "M", "K", "K1", "K2", "H"].includes(key)) {
     return { min: 1, max: max(10, ceil(absValue * 2.5)), step: 1 };
